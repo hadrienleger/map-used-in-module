@@ -59,21 +59,49 @@
         url: 'mapbox://hadrienleger.cya562rc' // Votre Tileset ID pour les communes
       });
 
-      map.addLayer({
-        id: 'communes-layer',
-        type: 'fill',
-        source: 'communes',
-        'source-layer': 'simplifie-fusion-communes-et--439qo9', // Nom du layer
-        paint: {
-          'fill-color': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            '#FF0000', // Couleur si sélectionné
-            '#888888'  // Couleur par défaut
-          ],
-          'fill-opacity': 0.5
-        }
-      });
+      // Couche des communes
+map.addLayer({
+  id: 'communes-layer',
+  type: 'fill',
+  source: 'communes',
+  'source-layer': 'simplifie-fusion-communes-et--439qo9',
+  paint: {
+    'fill-color': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
+      '#FF0000', // Couleur si sélectionné
+      '#2C3E50'  // Couleur par défaut (bleu nuit)
+    ],
+    'fill-opacity': 0.5,
+    'fill-outline-color': '#FFFFFF' // Contour blanc
+  }
+});
+
+// Couche des labels des communes
+map.addLayer({
+  id: 'communes-labels',
+  type: 'symbol',
+  source: 'communes',
+  'source-layer': 'simplifie-fusion-communes-et--439qo9',
+  layout: {
+    'text-field': ['get', 'NOM'],
+    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+    'text-size': [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      5, 10,
+      12, 16
+    ],
+    'text-anchor': 'center',
+    'text-allow-overlap': false
+  },
+  paint: {
+    'text-color': '#FFFFFF',
+    'text-halo-color': '#000000',
+    'text-halo-width': 1
+  }
+}, 'communes-layer');
 
       // Événements pour la sélection
       map.on('click', 'communes-layer', function(e) {
@@ -97,20 +125,54 @@
       });
 
       map.addLayer({
-        id: 'departements-layer',
-        type: 'fill',
-        source: 'departements',
-        'source-layer': 'simplifie-DEPARTEMENT-asio6w', // Nom du layer
-        paint: {
-          'fill-color': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            '#0000FF', // Couleur si sélectionné
-            '#888888'  // Couleur par défaut
-          ],
-          'fill-opacity': 0.5
-        }
-      });
+  id: 'departements-layer',
+  type: 'fill',
+  source: 'departements',
+  'source-layer': 'simplifie-DEPARTEMENT-asio6w',
+  paint: {
+    'fill-color': [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
+      '#FF0000', // Couleur si sélectionné
+      '#8E44AD'  // Couleur par défaut (mauve)
+    ],
+    'fill-opacity': 0.5,
+    'fill-outline-color': '#FFFFFF' // Contour blanc
+  }
+});
+
+      // Couche des labels des départements
+map.addLayer({
+  id: 'departements-labels',
+  type: 'symbol',
+  source: 'departements',
+  'source-layer': 'simplifie-DEPARTEMENT-asio6w',
+  layout: {
+    'text-field': [
+      'format',
+      ['get', 'INSEE_DEP'],
+      {},
+      ' ',
+      {},
+      ['get', 'NOM']
+    ],
+    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+    'text-size': [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      5, 10,
+      12, 16
+    ],
+    'text-anchor': 'center',
+    'text-allow-overlap': false
+  },
+  paint: {
+    'text-color': '#FFFFFF',
+    'text-halo-color': '#000000',
+    'text-halo-width': 1
+  }
+}, 'departements-layer');
 
       // Événements pour la sélection
       map.on('click', 'departements-layer', function(e) {
@@ -169,15 +231,22 @@
 
       if (layerType === 'commune') {
         map.setLayoutProperty('communes-layer', 'visibility', 'visible');
+        map.setLayoutProperty('communes-labels', 'visibility', 'visible');
         map.setLayoutProperty('departements-layer', 'visibility', 'none');
+        map.setLayoutProperty('departements-labels', 'visibility', 'none');
       } else if (layerType === 'departement') {
         map.setLayoutProperty('communes-layer', 'visibility', 'none');
+        map.setLayoutProperty('communes-labels', 'visibility', 'none');
         map.setLayoutProperty('departements-layer', 'visibility', 'visible');
+        map.setLayoutProperty('departements-labels', 'visibility', 'visible');
       } else {
         map.setLayoutProperty('communes-layer', 'visibility', 'none');
+        map.setLayoutProperty('communes-labels', 'visibility', 'none');
         map.setLayoutProperty('departements-layer', 'visibility', 'none');
+        map.setLayoutProperty('departements-labels', 'visibility', 'none');
       }
     };
+
 
     // Fonction pour centrer la carte sur un point et afficher un cercle (pour le premier onglet)
     window.bubble_fn_updateMap = function(latitude, longitude, radius) {
