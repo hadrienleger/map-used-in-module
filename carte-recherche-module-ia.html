@@ -1,131 +1,269 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>Carte Mapbox avec Mise à Jour depuis Bubble</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta charset="utf-8">
+  <title>Carte Mapbox avec sélection des communes et départements</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
 
-    <!-- Inclusion des feuilles de style et scripts Mapbox -->
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <!-- Inclusion des feuilles de style et scripts Mapbox -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 
-    <!-- Style personnalisé pour la carte -->
-    <style>
-        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-    </style>
+  <!-- Style personnalisé pour la carte -->
+  <style>
+    body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+  </style>
 </head>
 <body>
 
-    <!-- Conteneur de la carte -->
-    <div id="map"></div>
+  <!-- Conteneur de la carte -->
+  <div id="map"></div>
 
-    <!-- Script principal -->
-    <script>
-        // Variable globale pour la carte
-        let map;
+  <!-- Script principal -->
+  <script>
+    // Variable globale pour la carte
+    let map;
 
-        // Initialisation de la carte lorsque la page est chargée
-        window.onload = function() {
-            mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA'; // Remplacez par votre propre token
+    // Variables pour stocker les sélections
+    let selectedFeatures = [];
+    let currentLayerType = 'none'; // 'commune', 'departement', or 'none'
 
-            // Création de la carte
-            map = new mapboxgl.Map({
-                container: 'map',
-                style: 'mapbox://styles/mapbox/streets-v12',
-                center: [2.33, 48.86], // Centre initial (Paris)
-                zoom: 11,
-                doubleClickZoom: true
-            });
+    // Fonction pour initialiser la carte
+    function initializeMap() {
+      mapboxgl.accessToken = 'VOTRE_MAPBOX_ACCESS_TOKEN'; // Remplacez par votre token Mapbox
 
-            // Une fois la carte chargée
-            map.on('load', function() {
-                // Vous pouvez ajouter ici d'autres couches ou configurations initiales si nécessaire
-            });
-        };
+      // Création de la carte
+      map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [2.2137, 46.2276], // Centre de la France
+        zoom: 5
+      });
 
-        // Fonction appelée depuis Bubble pour mettre à jour la carte
-        window.bubble_fn_updateMap = function(latitude, longitude, radius) {
-            if (map) {
-                // Conversion des paramètres en nombres
-                latitude = parseFloat(latitude);
-                longitude = parseFloat(longitude);
-                radius = parseFloat(radius);
+      map.on('load', function() {
+        // Ajouter les sources et couches pour les communes et départements
+        addCommuneLayer();
+        addDepartementLayer();
 
-                // Vérification des valeurs
-                if (isNaN(latitude) || isNaN(longitude) || isNaN(radius)) {
-                    console.error('Paramètres invalides pour bubble_fn_updateMap');
-                    return;
-                }
+        // Par défaut, cacher les couches
+        map.setLayoutProperty('communes-layer', 'visibility', 'none');
+        map.setLayoutProperty('departements-layer', 'visibility', 'none');
+      });
+    }
 
-                // Centrer la carte sur les coordonnées spécifiées
-                map.flyTo({ center: [longitude, latitude], zoom: 13 });
+    // Fonction pour ajouter la couche des communes
+    function addCommuneLayer() {
+      map.addSource('communes', {
+        type: 'vector',
+        url: 'mapbox://hadrienleger.cya562rc' // Votre Tileset ID pour les communes
+      });
 
-                // Supprimer le cercle existant s'il y en a un
-                if (map.getSource('search-circle')) {
-                    if (map.getLayer('search-circle')) {
-                        map.removeLayer('search-circle');
-                    }
-                    map.removeSource('search-circle');
-                }
-
-                // Créer le GeoJSON du cercle
-                var circleGeoJSON = createGeoJSONCircle([longitude, latitude], radius);
-
-                // Ajouter le cercle à la carte
-                map.addSource('search-circle', {
-                    'type': 'geojson',
-                    'data': circleGeoJSON
-                });
-
-                map.addLayer({
-                    'id': 'search-circle',
-                    'type': 'fill',
-                    'source': 'search-circle',
-                    'layout': {},
-                    'paint': {
-                        'fill-color': '#007cbf',
-                        'fill-opacity': 0.2
-                    }
-                });
-            } else {
-                console.log('La carte n\'est pas encore initialisée');
-            }
-        };
-
-        // Fonction pour créer un cercle en GeoJSON
-        function createGeoJSONCircle(center, radiusInKm, points) {
-            if (!points) points = 64;
-
-            var coords = {
-                latitude: center[1],
-                longitude: center[0]
-            };
-
-            var km = radiusInKm;
-
-            var ret = [];
-            var distanceX = km / (111.320 * Math.cos(coords.latitude * Math.PI / 180));
-            var distanceY = km / 110.574;
-
-            var theta, x, y;
-            for (var i = 0; i < points; i++) {
-                theta = (i / points) * (2 * Math.PI);
-                x = distanceX * Math.cos(theta);
-                y = distanceY * Math.sin(theta);
-
-                ret.push([coords.longitude + x, coords.latitude + y]);
-            }
-            ret.push(ret[0]);
-
-            return {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [ret]
-                }
-            };
+      map.addLayer({
+        id: 'communes-layer',
+        type: 'fill',
+        source: 'communes',
+        'source-layer': 'simplifie-fusion-communes-et--439qo9', // Nom du layer
+        paint: {
+          'fill-color': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            '#FF0000', // Couleur si sélectionné
+            '#888888'  // Couleur par défaut
+          ],
+          'fill-opacity': 0.5
         }
-    </script>
+      });
+
+      // Événements pour la sélection
+      map.on('click', 'communes-layer', function(e) {
+        handleFeatureClick(e, 'commune');
+      });
+
+      map.on('mouseenter', 'communes-layer', function() {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+
+      map.on('mouseleave', 'communes-layer', function() {
+        map.getCanvas().style.cursor = '';
+      });
+    }
+
+    // Fonction pour ajouter la couche des départements
+    function addDepartementLayer() {
+      map.addSource('departements', {
+        type: 'vector',
+        url: 'mapbox://hadrienleger.7ys4ypx4' // Votre Tileset ID pour les départements
+      });
+
+      map.addLayer({
+        id: 'departements-layer',
+        type: 'fill',
+        source: 'departements',
+        'source-layer': 'simplifie-DEPARTEMENT-asio6w', // Nom du layer
+        paint: {
+          'fill-color': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            '#0000FF', // Couleur si sélectionné
+            '#888888'  // Couleur par défaut
+          ],
+          'fill-opacity': 0.5
+        }
+      });
+
+      // Événements pour la sélection
+      map.on('click', 'departements-layer', function(e) {
+        handleFeatureClick(e, 'departement');
+      });
+
+      map.on('mouseenter', 'departements-layer', function() {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+
+      map.on('mouseleave', 'departements-layer', function() {
+        map.getCanvas().style.cursor = '';
+      });
+    }
+
+    // Fonction pour gérer le clic sur une entité
+    function handleFeatureClick(e, layerType) {
+      if (currentLayerType !== layerType) {
+        return; // Ne rien faire si le layer n'est pas actif
+      }
+
+      var feature = e.features[0];
+      var properties = feature.properties;
+      var idField = (layerType === 'commune') ? 'INSEE_COM' : 'INSEE_DEP'; // Remplacez par le nom exact des champs dans vos données
+      var id = properties[idField];
+
+      // Vérifier si l'entité est déjà sélectionnée
+      var index = selectedFeatures.indexOf(id);
+      if (index > -1) {
+        // Désélectionner
+        selectedFeatures.splice(index, 1);
+        map.setFeatureState({ source: layerType + 's', sourceLayer: feature.sourceLayer, id: feature.id }, { selected: false });
+      } else {
+        // Sélectionner
+        selectedFeatures.push(id);
+        map.setFeatureState({ source: layerType + 's', sourceLayer: feature.sourceLayer, id: feature.id }, { selected: true });
+      }
+
+      // Envoyer la liste des identifiants sélectionnés à Bubble
+      if (typeof bubble_fn_selectedFeatures === 'function') {
+        bubble_fn_selectedFeatures(JSON.stringify({
+          type: layerType,
+          ids: selectedFeatures
+        }));
+      }
+    }
+
+    // Fonction pour mettre à jour l'affichage des couches en fonction de l'onglet sélectionné
+    window.updateMapLayers = function(layerType) {
+      currentLayerType = layerType;
+      selectedFeatures = []; // Réinitialiser les sélections
+
+      // Réinitialiser les états des entités
+      map.removeFeatureState({ source: 'communes' });
+      map.removeFeatureState({ source: 'departements' });
+
+      if (layerType === 'commune') {
+        map.setLayoutProperty('communes-layer', 'visibility', 'visible');
+        map.setLayoutProperty('departements-layer', 'visibility', 'none');
+      } else if (layerType === 'departement') {
+        map.setLayoutProperty('communes-layer', 'visibility', 'none');
+        map.setLayoutProperty('departements-layer', 'visibility', 'visible');
+      } else {
+        map.setLayoutProperty('communes-layer', 'visibility', 'none');
+        map.setLayoutProperty('departements-layer', 'visibility', 'none');
+      }
+    };
+
+    // Fonction pour centrer la carte sur un point et afficher un cercle (pour le premier onglet)
+    window.bubble_fn_updateMap = function(latitude, longitude, radius) {
+      if (map) {
+        // Conversion des paramètres en nombres
+        latitude = parseFloat(latitude);
+        longitude = parseFloat(longitude);
+        radius = parseFloat(radius);
+
+        // Vérification des valeurs
+        if (isNaN(latitude) || isNaN(longitude) || isNaN(radius)) {
+          console.error('Paramètres invalides pour bubble_fn_updateMap');
+          return;
+        }
+
+        // Centrer la carte sur les coordonnées spécifiées
+        map.flyTo({ center: [longitude, latitude], zoom: 13 });
+
+        // Supprimer le cercle existant s'il y en a un
+        if (map.getSource('search-circle')) {
+          if (map.getLayer('search-circle')) {
+            map.removeLayer('search-circle');
+          }
+          map.removeSource('search-circle');
+        }
+
+        // Créer le GeoJSON du cercle
+        var circleGeoJSON = createGeoJSONCircle([longitude, latitude], radius);
+
+        // Ajouter le cercle à la carte
+        map.addSource('search-circle', {
+          'type': 'geojson',
+          'data': circleGeoJSON
+        });
+
+        map.addLayer({
+          'id': 'search-circle',
+          'type': 'fill',
+          'source': 'search-circle',
+          'layout': {},
+          'paint': {
+            'fill-color': '#007cbf',
+            'fill-opacity': 0.2
+          }
+        });
+      } else {
+        console.log('La carte n\'est pas encore initialisée');
+      }
+    };
+
+    // Fonction pour créer un cercle en GeoJSON
+    function createGeoJSONCircle(center, radiusInKm, points) {
+      if (!points) points = 64;
+
+      var coords = {
+        latitude: center[1],
+        longitude: center[0]
+      };
+
+      var km = radiusInKm;
+
+      var ret = [];
+      var distanceX = km / (111.320 * Math.cos(coords.latitude * Math.PI / 180));
+      var distanceY = km / 110.574;
+
+      var theta, x, y;
+      for (var i = 0; i < points; i++) {
+        theta = (i / points) * (2 * Math.PI);
+        x = distanceX * Math.cos(theta);
+        y = distanceY * Math.sin(theta);
+
+        ret.push([coords.longitude + x, coords.latitude + y]);
+      }
+      ret.push(ret[0]);
+
+      return {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [ret]
+        }
+      };
+    }
+
+    // Initialiser la carte au chargement de la page
+    window.onload = initializeMap;
+  </script>
 </body>
 </html>
