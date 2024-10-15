@@ -194,35 +194,57 @@ map.addLayer({
 
     // Fonction pour gérer le clic sur une entité
     function handleFeatureClick(e, layerType) {
-      if (currentLayerType !== layerType) {
-        return; // Ne rien faire si le layer n'est pas actif
-      }
+  if (currentLayerType !== layerType) {
+    return; // Ne rien faire si le layer n'est pas actif
+  }
 
-      var feature = e.features[0];
-      var properties = feature.properties;
-      var idField = (layerType === 'commune') ? 'INSEE_COM' : 'INSEE_DEP'; // Remplacez par le nom exact des champs dans vos données
-      var id = properties[idField];
+  var feature = e.features[0];
+  var properties = feature.properties;
+  var id;
 
-      // Vérifier si l'entité est déjà sélectionnée
-      var index = selectedFeatures.indexOf(id);
-      if (index > -1) {
-        // Désélectionner
-        selectedFeatures.splice(index, 1);
-        map.setFeatureState({ source: layerType + 's', sourceLayer: feature.sourceLayer, id: feature.id }, { selected: false });
-      } else {
-        // Sélectionner
-        selectedFeatures.push(id);
-        map.setFeatureState({ source: layerType + 's', sourceLayer: feature.sourceLayer, id: feature.id }, { selected: true });
-      }
-
-      // Envoyer la liste des identifiants sélectionnés à Bubble
-      if (typeof bubble_fn_selectedFeatures === 'function') {
-        bubble_fn_selectedFeatures(JSON.stringify({
-          type: layerType,
-          ids: selectedFeatures
-        }));
-      }
+  if (layerType === 'commune') {
+    // Vérifier si 'INSEE_COM' correspond à Paris, Lyon ou Marseille
+    var inseeCom = properties['INSEE_COM'];
+    if (['75056', '69123', '13055'].includes(inseeCom)) {
+      // Utiliser 'INSEE_ARM' comme identifiant pour les arrondissements municipaux
+      id = properties['INSEE_ARM'];
+    } else {
+      // Utiliser 'INSEE_COM' comme identifiant pour les autres communes
+      id = inseeCom;
     }
+  } else {
+    // Pour les départements, utiliser 'INSEE_DEP'
+    id = properties['INSEE_DEP'];
+  }
+
+  // Vérifier si l'identifiant est valide
+  if (!id) {
+    console.error('Identifiant non trouvé pour la feature sélectionnée.');
+    return;
+  }
+
+  // Vérifier si l'entité est déjà sélectionnée
+  var index = selectedFeatures.indexOf(id);
+  if (index > -1) {
+    // Désélectionner
+    selectedFeatures.splice(index, 1);
+    map.setFeatureState({ source: layerType + 's', sourceLayer: feature.sourceLayer, id: feature.id }, { selected: false });
+  } else {
+    // Sélectionner
+    selectedFeatures.push(id);
+    map.setFeatureState({ source: layerType + 's', sourceLayer: feature.sourceLayer, id: feature.id }, { selected: true });
+  }
+
+  // Envoyer les données à Bubble en utilisant 'com' ou 'dep' comme type
+  if (typeof bubble_fn_selectedFeatures === 'function') {
+    bubble_fn_selectedFeatures({
+      output1: layerType === 'commune' ? 'com' : 'dep', // Type de couche ('com' ou 'dep')
+      outputlist1: selectedFeatures // Liste des identifiants sélectionnés
+    });
+  }
+}
+
+
 
     // Fonction pour mettre à jour l'affichage des couches en fonction de l'onglet sélectionné
     window.updateMapLayers = function(layerType) {
@@ -232,6 +254,14 @@ map.addLayer({
       // Réinitialiser les états des entités
       map.removeFeatureState({ source: 'communes' });
       map.removeFeatureState({ source: 'departements' });
+
+// Supprimer le cercle de recherche s'il existe
+  if (map.getSource('search-circle')) {
+    if (map.getLayer('search-circle')) {
+      map.removeLayer('search-circle');
+    }
+    map.removeSource('search-circle');
+  }
 
       if (layerType === 'commune') {
         map.setLayoutProperty('communes-layer', 'visibility', 'visible');
