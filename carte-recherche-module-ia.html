@@ -47,9 +47,11 @@
         addDepartementLayer();
 
         // Par défaut, cacher les couches
-        map.setLayoutProperty('communes-layer', 'visibility', 'none');
-        map.setLayoutProperty('departements-layer', 'visibility', 'none');
-      });
+    map.setLayoutProperty('communes-layer', 'visibility', 'none');
+    map.setLayoutProperty('communes-labels', 'visibility', 'none'); // Cacher les labels des communes
+    map.setLayoutProperty('departements-layer', 'visibility', 'none');
+    map.setLayoutProperty('departements-labels', 'visibility', 'none'); // Cacher les labels des départements
+  });
     }
 
     // Fonction pour ajouter la couche des communes
@@ -72,7 +74,7 @@ map.addLayer({
       '#FF0000', // Couleur si sélectionné
       '#2C3E50'  // Couleur par défaut (bleu nuit)
     ],
-    'fill-opacity': 0.5,
+    'fill-opacity': 0.8,
     'fill-outline-color': '#FFFFFF' // Contour blanc
   }
 });
@@ -83,6 +85,7 @@ map.addLayer({
   type: 'symbol',
   source: 'communes',
   'source-layer': 'simplifie-fusion-communes-et--439qo9',
+  minzoom: 8, // Les labels apparaîtront à partir du niveau de zoom 8
   layout: {
     'text-field': ['get', 'NOM'],
     'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
@@ -90,8 +93,8 @@ map.addLayer({
       'interpolate',
       ['linear'],
       ['zoom'],
-      5, 10,
-      12, 16
+      5, 8,
+      12, 8
     ],
     'text-anchor': 'center',
     'text-allow-overlap': false
@@ -147,6 +150,7 @@ map.addLayer({
   type: 'symbol',
   source: 'departements',
   'source-layer': 'simplifie-DEPARTEMENT-asio6w',
+  minzoom: 5, // Les labels apparaîtront à partir du niveau de zoom 8
   layout: {
     'text-field': [
       'format',
@@ -162,7 +166,7 @@ map.addLayer({
       ['linear'],
       ['zoom'],
       5, 10,
-      12, 16
+      12, 11
     ],
     'text-anchor': 'center',
     'text-allow-overlap': false
