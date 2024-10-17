@@ -108,7 +108,7 @@ map.addLayer({
 
       // Événements pour la sélection
       map.on('click', 'communes-layer', function(e) {
-        handleFeatureClick(e, 'com');
+        handleFeatureClick(e, 'commune');
       });
 
       map.on('mouseenter', 'communes-layer', function() {
@@ -180,7 +180,7 @@ map.addLayer({
 
       // Événements pour la sélection
       map.on('click', 'departements-layer', function(e) {
-        handleFeatureClick(e, 'dep');
+        handleFeatureClick(e, 'departement');
       });
 
       map.on('mouseenter', 'departements-layer', function() {
@@ -238,7 +238,7 @@ map.addLayer({
   // Envoyer les données à Bubble en utilisant 'com' ou 'dep' comme type
   if (typeof bubble_fn_selectedFeatures === 'function') {
     bubble_fn_selectedFeatures({
-      output1: layerType === 'com' ? 'com' : 'dep', // Type de couche ('com' ou 'dep')
+      output1: layerType === 'commune' ? 'com' : 'dep', // Type de couche ('com' ou 'dep')
       outputlist1: selectedFeatures // Liste des identifiants sélectionnés
     });
   }
