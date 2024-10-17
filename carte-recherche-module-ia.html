@@ -27,7 +27,7 @@
 
     // Variables pour stocker les sélections
     let selectedFeatures = [];
-    let currentLayerType = 'none'; // 'commune', 'departement', or 'none'
+    let currentLayerType = 'none'; // 'com', 'dep', or 'none'
 
     // Fonction pour initialiser la carte
     function initializeMap() {
@@ -46,12 +46,16 @@
         addCommuneLayer();
         addDepartementLayer();
 
+        // Ajouter la couche des IRIS
+        addIrisLayer();
+
         // Par défaut, cacher les couches
-    map.setLayoutProperty('communes-layer', 'visibility', 'none');
-    map.setLayoutProperty('communes-labels', 'visibility', 'none'); // Cacher les labels des communes
-    map.setLayoutProperty('departements-layer', 'visibility', 'none');
-    map.setLayoutProperty('departements-labels', 'visibility', 'none'); // Cacher les labels des départements
-  });
+        map.setLayoutProperty('communes-layer', 'visibility', 'none');
+        map.setLayoutProperty('communes-labels', 'visibility', 'none'); // Cacher les labels des communes
+        map.setLayoutProperty('departements-layer', 'visibility', 'none');
+        map.setLayoutProperty('departements-labels', 'visibility', 'none'); // Cacher les labels des départements
+        map.setLayoutProperty('iris-layer', 'visibility', 'none');
+      });
     }
 
     // Fonction pour ajouter la couche des communes
@@ -62,53 +66,53 @@
       });
 
       // Couche des communes
-map.addLayer({
-  id: 'communes-layer',
-  type: 'fill',
-  source: 'communes',
-  'source-layer': 'simplifie-fusion-communes-et--439qo9',
-  paint: {
-    'fill-color': [
-      'case',
-      ['boolean', ['feature-state', 'selected'], false],
-      '#FF0000', // Couleur si sélectionné
-      '#2C3E50'  // Couleur par défaut (bleu nuit)
-    ],
-    'fill-opacity': 0.8,
-    'fill-outline-color': '#FFFFFF' // Contour blanc
-  }
-});
+      map.addLayer({
+        id: 'communes-layer',
+        type: 'fill',
+        source: 'communes',
+        'source-layer': 'simplifie-fusion-communes-et--439qo9',
+        paint: {
+          'fill-color': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            '#FF0000', // Couleur si sélectionné
+            '#2C3E50'  // Couleur par défaut (bleu nuit)
+          ],
+          'fill-opacity': 0.8,
+          'fill-outline-color': '#FFFFFF' // Contour blanc
+        }
+      });
 
-// Couche des labels des communes
-map.addLayer({
-  id: 'communes-labels',
-  type: 'symbol',
-  source: 'communes',
-  'source-layer': 'simplifie-fusion-communes-et--439qo9',
-  minzoom: 8, // Les labels apparaîtront à partir du niveau de zoom 8
-  layout: {
-    'text-field': ['get', 'NOM'],
-    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-    'text-size': [
-      'interpolate',
-      ['linear'],
-      ['zoom'],
-      5, 8,
-      12, 8
-    ],
-    'text-anchor': 'center',
-    'text-allow-overlap': false
-  },
-  paint: {
-    'text-color': '#FFFFFF',
-    'text-halo-color': '#000000',
-    'text-halo-width': 1
-  }
-}, 'communes-layer');
+      // Couche des labels des communes
+      map.addLayer({
+        id: 'communes-labels',
+        type: 'symbol',
+        source: 'communes',
+        'source-layer': 'simplifie-fusion-communes-et--439qo9',
+        minzoom: 8, // Les labels apparaîtront à partir du niveau de zoom 8
+        layout: {
+          'text-field': ['get', 'NOM'],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            5, 8,
+            12, 8
+          ],
+          'text-anchor': 'center',
+          'text-allow-overlap': false
+        },
+        paint: {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#000000',
+          'text-halo-width': 1
+        }
+      }, 'communes-layer');
 
       // Événements pour la sélection
       map.on('click', 'communes-layer', function(e) {
-        handleFeatureClick(e, 'commune');
+        handleFeatureClick(e, 'com');
       });
 
       map.on('mouseenter', 'communes-layer', function() {
@@ -128,59 +132,59 @@ map.addLayer({
       });
 
       map.addLayer({
-  id: 'departements-layer',
-  type: 'fill',
-  source: 'departements',
-  'source-layer': 'simplifie-DEPARTEMENT-asio6w',
-  paint: {
-    'fill-color': [
-      'case',
-      ['boolean', ['feature-state', 'selected'], false],
-      '#FF0000', // Couleur si sélectionné
-      '#8E44AD'  // Couleur par défaut (mauve)
-    ],
-    'fill-opacity': 0.5,
-    'fill-outline-color': '#FFFFFF' // Contour blanc
-  }
-});
+        id: 'departements-layer',
+        type: 'fill',
+        source: 'departements',
+        'source-layer': 'simplifie-DEPARTEMENT-asio6w',
+        paint: {
+          'fill-color': [
+            'case',
+            ['boolean', ['feature-state', 'selected'], false],
+            '#FF0000', // Couleur si sélectionné
+            '#8E44AD'  // Couleur par défaut (mauve)
+          ],
+          'fill-opacity': 0.5,
+          'fill-outline-color': '#FFFFFF' // Contour blanc
+        }
+      });
 
       // Couche des labels des départements
-map.addLayer({
-  id: 'departements-labels',
-  type: 'symbol',
-  source: 'departements',
-  'source-layer': 'simplifie-DEPARTEMENT-asio6w',
-  minzoom: 5, // Les labels apparaîtront à partir du niveau de zoom 8
-  layout: {
-    'text-field': [
-      'format',
-      ['get', 'INSEE_DEP'],
-      {},
-      ' ',
-      {},
-      ['get', 'NOM']
-    ],
-    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-    'text-size': [
-      'interpolate',
-      ['linear'],
-      ['zoom'],
-      5, 10,
-      12, 11
-    ],
-    'text-anchor': 'center',
-    'text-allow-overlap': false
-  },
-  paint: {
-    'text-color': '#FFFFFF',
-    'text-halo-color': '#000000',
-    'text-halo-width': 1
-  }
-}, 'departements-layer');
+      map.addLayer({
+        id: 'departements-labels',
+        type: 'symbol',
+        source: 'departements',
+        'source-layer': 'simplifie-DEPARTEMENT-asio6w',
+        minzoom: 5, // Les labels apparaîtront à partir du niveau de zoom 8
+        layout: {
+          'text-field': [
+            'format',
+            ['get', 'INSEE_DEP'],
+            {},
+            ' ',
+            {},
+            ['get', 'NOM']
+          ],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            5, 10,
+            12, 11
+          ],
+          'text-anchor': 'center',
+          'text-allow-overlap': false
+        },
+        paint: {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#000000',
+          'text-halo-width': 1
+        }
+      }, 'departements-layer');
 
       // Événements pour la sélection
       map.on('click', 'departements-layer', function(e) {
-        handleFeatureClick(e, 'departement');
+        handleFeatureClick(e, 'dep');
       });
 
       map.on('mouseenter', 'departements-layer', function() {
@@ -192,61 +196,72 @@ map.addLayer({
       });
     }
 
-    // Fonction pour gérer le clic sur une entité
+    // Fonction pour gérer le clic sur une entité des couches communes-layer et departements-layer
     function handleFeatureClick(e, layerType) {
-  if (currentLayerType !== layerType) {
-    return; // Ne rien faire si le layer n'est pas actif
-  }
+      if (currentLayerType !== layerType) {
+        return; // Ne rien faire si le layer n'est pas actif
+      }
 
-  var feature = e.features[0];
-  var properties = feature.properties;
-  var id;
+      var feature = e.features[0];
+      var properties = feature.properties;
+      var id;
 
-  if (layerType === 'commune') {
-    // Vérifier si 'INSEE_COM' correspond à Paris, Lyon ou Marseille
-    var inseeCom = properties['INSEE_COM'];
-    if (['75056', '69123', '13055'].includes(inseeCom)) {
-      // Utiliser 'INSEE_ARM' comme identifiant pour les arrondissements municipaux
-      id = properties['INSEE_ARM'];
-    } else {
-      // Utiliser 'INSEE_COM' comme identifiant pour les autres communes
-      id = inseeCom;
+      // Déterminer le nom de la source en fonction de layerType
+      var sourceName;
+      if (layerType === 'com') {
+        sourceName = 'communes';
+        // Vérifier si 'INSEE_COM' correspond à Paris, Lyon ou Marseille
+        var inseeCom = properties['INSEE_COM'];
+        if (['75056', '69123', '13055'].includes(inseeCom)) {
+          // Utiliser 'INSEE_ARM' comme identifiant pour les arrondissements municipaux
+          id = properties['INSEE_ARM'];
+        } else {
+          // Utiliser 'INSEE_COM' comme identifiant pour les autres communes
+          id = inseeCom;
+        }
+      } else if (layerType === 'dep') {
+        sourceName = 'departements';
+        // Pour les départements, utiliser 'INSEE_DEP'
+        id = properties['INSEE_DEP'];
+      } else {
+        console.error('Type de couche invalide.');
+        return;
+      }
+
+      // Vérifier si l'identifiant est valide
+      if (!id) {
+        console.error('Identifiant non trouvé pour la feature sélectionnée.');
+        return;
+      }
+
+      // Vérifier si l'entité est déjà sélectionnée
+      var index = selectedFeatures.indexOf(id);
+      if (index > -1) {
+        // Désélectionner
+        selectedFeatures.splice(index, 1);
+        map.setFeatureState(
+          { source: sourceName, sourceLayer: feature.sourceLayer, id: feature.id },
+          { selected: false }
+        );
+      } else {
+        // Sélectionner
+        selectedFeatures.push(id);
+        map.setFeatureState(
+          { source: sourceName, sourceLayer: feature.sourceLayer, id: feature.id },
+          { selected: true }
+        );
+      }
+
+      // Envoyer les données à Bubble en utilisant 'com' ou 'dep' comme type
+      if (typeof bubble_fn_selectedFeatures === 'function') {
+        bubble_fn_selectedFeatures({
+          output1: layerType, // 'com' ou 'dep'
+          outputlist1: selectedFeatures // Liste des identifiants sélectionnés
+        });
+      }
     }
-  } else {
-    // Pour les départements, utiliser 'INSEE_DEP'
-    id = properties['INSEE_DEP'];
-  }
 
-  // Vérifier si l'identifiant est valide
-  if (!id) {
-    console.error('Identifiant non trouvé pour la feature sélectionnée.');
-    return;
-  }
-
-  // Vérifier si l'entité est déjà sélectionnée
-  var index = selectedFeatures.indexOf(id);
-  if (index > -1) {
-    // Désélectionner
-    selectedFeatures.splice(index, 1);
-    map.setFeatureState({ source: layerType + 's', sourceLayer: feature.sourceLayer, id: feature.id }, { selected: false });
-  } else {
-    // Sélectionner
-    selectedFeatures.push(id);
-    map.setFeatureState({ source: layerType + 's', sourceLayer: feature.sourceLayer, id: feature.id }, { selected: true });
-  }
-
-  // Envoyer les données à Bubble en utilisant 'com' ou 'dep' comme type
-  if (typeof bubble_fn_selectedFeatures === 'function') {
-    bubble_fn_selectedFeatures({
-      output1: layerType === 'commune' ? 'com' : 'dep', // Type de couche ('com' ou 'dep')
-      outputlist1: selectedFeatures // Liste des identifiants sélectionnés
-    });
-  }
-}
-
-
-
-    // Fonction pour mettre à jour l'affichage des couches en fonction de l'onglet sélectionné
+    // Fonction pour mettre à jour l'affichage des couches communes-layer et departements-layer en fonction de l'onglet sélectionné
     window.updateMapLayers = function(layerType) {
       currentLayerType = layerType;
       selectedFeatures = []; // Réinitialiser les sélections
@@ -255,20 +270,20 @@ map.addLayer({
       map.removeFeatureState({ source: 'communes' });
       map.removeFeatureState({ source: 'departements' });
 
-// Supprimer le cercle de recherche s'il existe
-  if (map.getSource('search-circle')) {
-    if (map.getLayer('search-circle')) {
-      map.removeLayer('search-circle');
-    }
-    map.removeSource('search-circle');
-  }
+      // Supprimer le cercle de recherche s'il existe
+      if (map.getSource('search-circle')) {
+        if (map.getLayer('search-circle')) {
+          map.removeLayer('search-circle');
+        }
+        map.removeSource('search-circle');
+      }
 
-      if (layerType === 'commune') {
+      if (layerType === 'com') {
         map.setLayoutProperty('communes-layer', 'visibility', 'visible');
         map.setLayoutProperty('communes-labels', 'visibility', 'visible');
         map.setLayoutProperty('departements-layer', 'visibility', 'none');
         map.setLayoutProperty('departements-labels', 'visibility', 'none');
-      } else if (layerType === 'departement') {
+      } else if (layerType === 'dep') {
         map.setLayoutProperty('communes-layer', 'visibility', 'none');
         map.setLayoutProperty('communes-labels', 'visibility', 'none');
         map.setLayoutProperty('departements-layer', 'visibility', 'visible');
@@ -280,6 +295,89 @@ map.addLayer({
         map.setLayoutProperty('departements-labels', 'visibility', 'none');
       }
     };
+
+      function addIrisLayer() {
+  map.addSource('iris', {
+    type: 'vector',
+    url: 'mapbox://hadrienleger.as1qqsaw' // Remplacez par votre Tileset ID pour les IRIS
+  });
+
+  map.addLayer({
+    id: 'iris-layer',
+    type: 'fill',
+    source: 'iris',
+    'source-layer': 'IRIS_FRANCE_COMPLETE_WGS84_21-9k6z9i', // Remplacez par le nom du layer dans votre tileset
+    paint: {
+      'fill-color': '#F39C12',
+      'fill-opacity': 0.6,
+      'fill-outline-color': '#FFFFFF'
+    },
+  });
+}
+
+
+function showSelectedIris(codesIris) {
+  // Mettre à jour la carte pour afficher uniquement les IRIS avec les codes spécifiés
+  map.setFilter('iris-layer', ['in', ['get', 'CODE_IRIS'], ['literal', codesIris]]);
+
+  // Cacher les autres couches
+  map.setLayoutProperty('communes-layer', 'visibility', 'none');
+  map.setLayoutProperty('communes-labels', 'visibility', 'none');
+  map.setLayoutProperty('departements-layer', 'visibility', 'none');
+  map.setLayoutProperty('departements-labels', 'visibility', 'none');
+
+  // Supprimer le cercle de recherche s'il existe
+  if (map.getSource('search-circle')) {
+    if (map.getLayer('search-circle')) {
+      map.removeLayer('search-circle');
+    }
+    map.removeSource('search-circle');
+  }
+
+  // Afficher la couche IRIS
+  map.setLayoutProperty('iris-layer', 'visibility', 'visible');
+
+  // Zoomer sur l'étendue des IRIS sélectionnés
+  map.fitBounds(getIrisBounds(codesIris), { padding: 20 });
+}
+
+// La fonction getIrisBounds calcule les limites géographiques des IRIS sélectionnés pour ajuster la vue de la carte.
+function getIrisBounds(codesIris) {
+  // Obtenir les limites (bounds) des IRIS sélectionnés
+  // Cette fonction récupère les features correspondantes et calcule les bounds
+
+  var features = map.querySourceFeatures('iris', {
+    sourceLayer: 'iris-layer',
+    filter: ['in', ['get', 'CODE_IRIS'], ['literal', codesIris]]
+  });
+
+  var coordinates = [];
+
+  features.forEach(function(feature) {
+    var geom = feature.geometry;
+    if (geom.type === 'Polygon') {
+      coordinates.push(...geom.coordinates[0]);
+    } else if (geom.type === 'MultiPolygon') {
+      geom.coordinates.forEach(function(polygon) {
+        coordinates.push(...polygon[0]);
+      });
+    }
+  });
+
+  return coordinates.length ? coordinates.reduce(function(bounds, coord) {
+    return bounds.extend(coord);
+  }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0])) : map.getBounds();
+}
+
+// Fonction accessible depuis Bubble pour afficher les IRIS
+window.showIrisOnMap = function(codesIris) {
+  if (map && codesIris && Array.isArray(codesIris)) {
+    // Appeler la fonction pour afficher les IRIS avec la liste directement
+    showSelectedIris(codesIris);
+  } else {
+    console.error('La carte n\'est pas initialisée ou les codes IRIS ne sont pas valides.');
+  }
+};
 
 
     // Fonction pour centrer la carte sur un point et afficher un cercle (pour le premier onglet)
