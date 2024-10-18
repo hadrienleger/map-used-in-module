@@ -317,8 +317,18 @@
 
 
 function showSelectedIris(codesIris) {
-  // Mettre à jour la carte pour afficher uniquement les IRIS avec les codes spécifiés
-  map.setFilter('iris-layer', ['in', ['get', 'CODE_IRIS'], ['literal', codesIris]]);
+  console.log('showSelectedIris appelée avec:', codesIris);
+  
+  // Utiliser l'opérateur 'match' pour le filtre
+  const filter = ['match', ['get', 'CODE_IRIS'], codesIris, true, false];
+  console.log('Filtre appliqué:', filter);
+  
+  try {
+    map.setFilter('iris-layer', filter);
+    console.log('Filtre appliqué avec succès');
+  } catch (error) {
+    console.error('Erreur lors de l\'application du filtre:', error);
+  }
 
   // Cacher les autres couches
   map.setLayoutProperty('communes-layer', 'visibility', 'none');
@@ -326,7 +336,7 @@ function showSelectedIris(codesIris) {
   map.setLayoutProperty('departements-layer', 'visibility', 'none');
   map.setLayoutProperty('departements-labels', 'visibility', 'none');
 
-  // Supprimer le cercle de recherche s'il existe
+// Supprimer le cercle de recherche s'il existe
   if (map.getSource('search-circle')) {
     if (map.getLayer('search-circle')) {
       map.removeLayer('search-circle');
@@ -338,46 +348,56 @@ function showSelectedIris(codesIris) {
   map.setLayoutProperty('iris-layer', 'visibility', 'visible');
 
   // Zoomer sur l'étendue des IRIS sélectionnés
-  map.fitBounds(getIrisBounds(codesIris), { padding: 20 });
+  fitMapToIris(codesIris);
 }
 
-// La fonction getIrisBounds calcule les limites géographiques des IRIS sélectionnés pour ajuster la vue de la carte.
-function getIrisBounds(codesIris) {
-  // Obtenir les limites (bounds) des IRIS sélectionnés
-  // Cette fonction récupère les features correspondantes et calcule les bounds
+function fitMapToIris(codesIris) {
+  console.log('fitMapToIris appelée avec:', codesIris);
 
-  var features = map.querySourceFeatures('iris', {
-    sourceLayer: 'iris-layer',
-    filter: ['in', ['get', 'CODE_IRIS'], ['literal', codesIris]]
-  });
+  // Attendre que la carte ait fini de rendre les changements
+  map.once('idle', () => {
+    try {
+      // Obtenir les features visibles de la couche iris-layer
+      const features = map.queryRenderedFeatures({ layers: ['iris-layer'] });
+      console.log('Nombre de features rendues:', features.length);
 
-  var coordinates = [];
+      if (features.length > 0) {
+        const bounds = new mapboxgl.LngLatBounds();
+        features.forEach(feature => {
+          if (feature.geometry) {
+            if (feature.geometry.type === 'Polygon') {
+              feature.geometry.coordinates[0].forEach(coord => bounds.extend(coord));
+            } else if (feature.geometry.type === 'MultiPolygon') {
+              feature.geometry.coordinates.forEach(polygon => {
+                polygon[0].forEach(coord => bounds.extend(coord));
+              });
+            }
+          }
+        });
 
-  features.forEach(function(feature) {
-    var geom = feature.geometry;
-    if (geom.type === 'Polygon') {
-      coordinates.push(...geom.coordinates[0]);
-    } else if (geom.type === 'MultiPolygon') {
-      geom.coordinates.forEach(function(polygon) {
-        coordinates.push(...polygon[0]);
-      });
+        console.log('Ajustement de la vue sur les features trouvées');
+        map.fitBounds(bounds, { padding: 20, maxZoom: 14 });
+      } else {
+        console.warn('Aucune feature IRIS visible trouvée.');
+        // Optionnel : zoomer sur la France entière ou une zone par défaut
+        map.fitBounds([[-5.1406, 41.3337], [9.5593, 51.0891]], { maxZoom: 10 });
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajustement de la vue:', error);
+      map.fitBounds([[-5.1406, 41.3337], [9.5593, 51.0891]], { maxZoom: 10 });
     }
   });
-
-  return coordinates.length ? coordinates.reduce(function(bounds, coord) {
-    return bounds.extend(coord);
-  }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0])) : map.getBounds();
 }
 
 // Fonction accessible depuis Bubble pour afficher les IRIS
 window.showIrisOnMap = function(codesIris) {
   if (map && codesIris && Array.isArray(codesIris)) {
-    // Appeler la fonction pour afficher les IRIS avec la liste directement
     showSelectedIris(codesIris);
   } else {
     console.error('La carte n\'est pas initialisée ou les codes IRIS ne sont pas valides.');
   }
 };
+
 
 
     // Fonction pour centrer la carte sur un point et afficher un cercle (pour le premier onglet)
