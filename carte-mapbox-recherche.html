@@ -49,499 +49,383 @@
     let selectedFeatures = [];
     let currentLayerType = 'none'; // 'com', 'dep', 'niveauVie', 'logementSocial', 'none', etc.
 
-    // Configuration des constantes des cartes choropleths
-    const choroplethConfigs = {
-        nv_moyen: {
-            breaks: [15000, 20000, 25000, 30000, 35000],
-            colors: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'],
-            property: 'nv_moyen',
-            title: 'Niveau de vie moyen',
-            labels: ['< 15k€', '15-20k€', '20-25k€', '25-30k€', '30-35k€', '> 35k€']
-        },
-        part_log_soc: {
-            breaks: [5, 10, 15, 20, 25],
-            colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
-            property: 'part_log_soc',
-            title: 'Part de logements sociaux (%)',
-            labels: ['< 5%', '5-10%', '10-15%', '15-20%', '20-25%', '> 25%']
-        },
-        notes_insecurite: {
-            breaks: [5, 8, 11, 14, 17],
-            colors: ['#0571b0', '#92c5de', '#f7f7f7', '#f4a582', '#ca0020', '#7a0000'],
-            property: 'note_sur_20',
-            title: 'Note d''insécurité sur 20',
-            labels: ['< 5', '5-8', '8-11', '11-14', '14-17', '> 17'],
-            nullColor: '#cccccc'
-        }
-    };
 
-    const sourceConfigs = {
-        nv_moyen: {
-            source: 'filosofi',
-            sourceLayer: 'votre_layer_filosofi', // À remplacer
-            tilesetId: 'hadrienleger.tileset_filosofi' // À remplacer
+    // Configuration unifiée de toutes les couches
+const layerConfigs = {
+    communes: {
+        type: 'selectable',
+        source: {
+            type: 'vector',
+            url: 'mapbox://hadrienleger.cya562rc'
         },
-        part_log_soc: {
-            source: 'filosofi',
-            sourceLayer: 'votre_layer_filosofi', // À remplacer
-            tilesetId: 'hadrienleger.tileset_filosofi' // À remplacer
+        sourceLayer: 'simplifie-fusion-communes-et--439qo9',
+        paint: {
+            'fill-color': [
+                'case',
+                ['boolean', ['feature-state', 'selected'], false],
+                '#FF0000',
+                '#2C3E50'
+            ],
+            'fill-opacity': 0.8,
+            'fill-outline-color': '#FFFFFF'
         },
-        notes_insecurite: {
-            source: 'securite',
-            sourceLayer: 'votre_layer_securite', // À remplacer
-            tilesetId: 'hadrienleger.tileset_securite' // À remplacer
+        labels: {
+            enabled: true,
+            layout: {
+                'text-field': ['get', 'NOM'],
+                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                'text-size': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    5, 8,
+                    12, 8
+                ],
+                'text-anchor': 'center',
+                'text-allow-overlap': false
+            },
+            paint: {
+                'text-color': '#FFFFFF',
+                'text-halo-color': '#000000',
+                'text-halo-width': 1
+            },
+            minZoom: 8
+        },
+        interactions: {
+            selectable: true,
+            idField: 'INSEE_COM',
+            specialCases: {
+                ids: ['75056', '69123', '13055'],
+                alternateField: 'INSEE_ARM'
+            },
+            cursor: 'pointer',
+            bubbleFunction: 'com'
         }
-    };
-
+    },
+    departements: {
+        type: 'selectable',
+        source: {
+            type: 'vector',
+            url: 'mapbox://hadrienleger.7ys4ypx4'
+        },
+        sourceLayer: 'simplifie-DEPARTEMENT-asio6w',
+        paint: {
+            'fill-color': [
+                'case',
+                ['boolean', ['feature-state', 'selected'], false],
+                '#FF0000',
+                '#8E44AD'
+            ],
+            'fill-opacity': 0.5,
+            'fill-outline-color': '#FFFFFF'
+        },
+        labels: {
+            enabled: true,
+            layout: {
+                'text-field': [
+                    'format',
+                    ['get', 'INSEE_DEP'],
+                    {},
+                    ' ',
+                    {},
+                    ['get', 'NOM']
+                ],
+                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                'text-size': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    5, 10,
+                    12, 11
+                ],
+                'text-anchor': 'center',
+                'text-allow-overlap': false
+            },
+            paint: {
+                'text-color': '#FFFFFF',
+                'text-halo-color': '#000000',
+                'text-halo-width': 1
+            },
+            minZoom: 5
+        },
+        interactions: {
+            selectable: true,
+            idField: 'INSEE_DEP',
+            cursor: 'pointer',
+            bubbleFunction: 'dep'
+        }
+    },
+    niveauVie: {
+        type: 'choropleth',
+        source: {
+            type: 'vector',
+            url: 'mapbox://hadrienleger.filosofi2019'
+        },
+        sourceLayer: 'hadrienleger.filosofi2019',
+        property: 'nv_moyen',
+        breaks: [15000, 20000, 25000, 30000, 35000],
+        colors: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'],
+        title: 'Niveau de vie médian',
+        labels: ['< 15k€', '15-20k€', '20-25k€', '25-30k€', '30-35k€', '> 35k€']
+    },
+    logementSocial: {
+        type: 'choropleth',
+        source: {
+            type: 'vector',
+            url: 'mapbox://hadrienleger.filosofi2019'
+        },
+        sourceLayer: 'hadrienleger.filosofi2019',
+        property: 'part_log_soc',
+        breaks: [5, 10, 15, 20, 25],
+        colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+        title: 'Part de logements sociaux (%)',
+        labels: ['< 5%', '5-10%', '10-15%', '15-20%', '20-25%', '> 25%']
+    }
+};
 
     // Fonction pour initialiser la carte
     function initializeMap() {
       mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA'; // Remplacez par votre token Mapbox
 
       // Création de la carte
-      map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/mapbox/light-v11',
-            center: [2.2137, 46.2276],
-            zoom: 5
-        });
+       map = new mapboxgl.Map({
+         container: 'map',
+         style: 'mapbox://styles/mapbox/light-v11',
+         center: [2.2137, 46.2276],
+         zoom: 5
+     });
 
-        map.on('load', function() {
-            addCommuneLayer();
-            addDepartementLayer();
-            addIrisLayer();
-            addDataSources();
-            hideAllLayers();
-        });
+     map.on('load', function() {
+         // Ajouter toutes les sources au chargement
+         Object.keys(layerConfigs).forEach(layerId => {
+             const config = layerConfigs[layerId];
+             if (!map.getSource(layerId)) {
+                 map.addSource(layerId, config.source);
+             }
+         });
+         
+         // Cacher toutes les couches par défaut
+         hideAllLayers();
+     });
     }
 
-    // Fonction pour ajouter la couche des communes
-    function addCommuneLayer() {
-      map.addSource('communes', {
-        type: 'vector',
-        url: 'mapbox://hadrienleger.cya562rc' // Votre Tileset ID pour les communes
-      });
 
-      // Couche des communes
-      map.addLayer({
-        id: 'communes-layer',
-        type: 'fill',
-        source: 'communes',
-        'source-layer': 'simplifie-fusion-communes-et--439qo9',
-        paint: {
-          'fill-color': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            '#FF0000', // Couleur si sélectionné
-            '#2C3E50'  // Couleur par défaut (bleu nuit)
-          ],
-          'fill-opacity': 0.8,
-          'fill-outline-color': '#FFFFFF' // Contour blanc
-        }
-      });
+// Fonction unique pour ajouter une couche
+function addLayer(layerId) {
+   const config = layerConfigs[layerId];
+   if (!config) return;
 
-      // Couche des labels des communes
-      map.addLayer({
-        id: 'communes-labels',
-        type: 'symbol',
-        source: 'communes',
-        'source-layer': 'simplifie-fusion-communes-et--439qo9',
-        minzoom: 8, // Les labels apparaîtront à partir du niveau de zoom 8
-        layout: {
-          'text-field': ['get', 'NOM'],
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-size': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            5, 8,
-            12, 8
-          ],
-          'text-anchor': 'center',
-          'text-allow-overlap': false
-        },
-        paint: {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#000000',
-          'text-halo-width': 1
-        }
-      }, 'communes-layer');
-
-      // Événements pour la sélection
-      map.on('click', 'communes-layer', function(e) {
-        handleFeatureClick(e, 'com');
-      });
-
-      map.on('mouseenter', 'communes-layer', function() {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-
-      map.on('mouseleave', 'communes-layer', function() {
-        map.getCanvas().style.cursor = '';
-      });
-    }
-
-    // Fonction pour ajouter la couche des départements
-    function addDepartementLayer() {
-      map.addSource('departements', {
-        type: 'vector',
-        url: 'mapbox://hadrienleger.7ys4ypx4' // Votre Tileset ID pour les départements
-      });
-
-      map.addLayer({
-        id: 'departements-layer',
-        type: 'fill',
-        source: 'departements',
-        'source-layer': 'simplifie-DEPARTEMENT-asio6w',
-        paint: {
-          'fill-color': [
-            'case',
-            ['boolean', ['feature-state', 'selected'], false],
-            '#FF0000', // Couleur si sélectionné
-            '#8E44AD'  // Couleur par défaut (mauve)
-          ],
-          'fill-opacity': 0.5,
-          'fill-outline-color': '#FFFFFF' // Contour blanc
-        }
-      });
-
-      // Couche des labels des départements
-      map.addLayer({
-        id: 'departements-labels',
-        type: 'symbol',
-        source: 'departements',
-        'source-layer': 'simplifie-DEPARTEMENT-asio6w',
-        minzoom: 5, // Les labels apparaîtront à partir du niveau de zoom 8
-        layout: {
-          'text-field': [
-            'format',
-            ['get', 'INSEE_DEP'],
-            {},
-            ' ',
-            {},
-            ['get', 'NOM']
-          ],
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-size': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            5, 10,
-            12, 11
-          ],
-          'text-anchor': 'center',
-          'text-allow-overlap': false
-        },
-        paint: {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#000000',
-          'text-halo-width': 1
-        }
-      }, 'departements-layer');
-
-      // Événements pour la sélection
-      map.on('click', 'departements-layer', function(e) {
-        handleFeatureClick(e, 'dep');
-      });
-
-      map.on('mouseenter', 'departements-layer', function() {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-
-      map.on('mouseleave', 'departements-layer', function() {
-        map.getCanvas().style.cursor = '';
-      });
-    }
-
-    // Fonction pour gérer le clic sur une entité des couches communes-layer et departements-layer
-    function handleFeatureClick(e, layerType) {
-      if (currentLayerType !== layerType) {
-        return; // Ne rien faire si le layer n'est pas actif
-      }
-
-      var feature = e.features[0];
-      var properties = feature.properties;
-      var id;
-
-      // Déterminer le nom de la source en fonction de layerType
-      var sourceName;
-      if (layerType === 'com') {
-        sourceName = 'communes';
-        // Vérifier si 'INSEE_COM' correspond à Paris, Lyon ou Marseille
-        var inseeCom = properties['INSEE_COM'];
-        if (['75056', '69123', '13055'].includes(inseeCom)) {
-          // Utiliser 'INSEE_ARM' comme identifiant pour les arrondissements municipaux
-          id = properties['INSEE_ARM'];
-        } else {
-          // Utiliser 'INSEE_COM' comme identifiant pour les autres communes
-          id = inseeCom;
-        }
-      } else if (layerType === 'dep') {
-        sourceName = 'departements';
-        // Pour les départements, utiliser 'INSEE_DEP'
-        id = properties['INSEE_DEP'];
-      } else {
-        console.error('Type de couche invalide.');
-        return;
-      }
-
-      // Vérifier si l'identifiant est valide
-      if (!id) {
-        console.error('Identifiant non trouvé pour la feature sélectionnée.');
-        return;
-      }
-
-      // Vérifier si l'entité est déjà sélectionnée
-      var index = selectedFeatures.indexOf(id);
-      if (index > -1) {
-        // Désélectionner
-        selectedFeatures.splice(index, 1);
-        map.setFeatureState(
-          { source: sourceName, sourceLayer: feature.sourceLayer, id: feature.id },
-          { selected: false }
-        );
-      } else {
-        // Sélectionner
-        selectedFeatures.push(id);
-        map.setFeatureState(
-          { source: sourceName, sourceLayer: feature.sourceLayer, id: feature.id },
-          { selected: true }
-        );
-      }
-
-      // Envoyer les données à Bubble en utilisant 'com' ou 'dep' comme type
-      if (typeof bubble_fn_selectedFeatures === 'function') {
-        bubble_fn_selectedFeatures({
-          output1: layerType, // 'com' ou 'dep'
-          outputlist1: selectedFeatures // Liste des identifiants sélectionnés
-        });
-      }
-    }
-
-    // Fonction pour mettre à jour l'affichage des couches communes-layer et departements-layer en fonction de l'onglet sélectionné
-    window.updateMapLayers = function(layerType) {
-      currentLayerType = layerType;
-      selectedFeatures = []; // Réinitialiser les sélections
-
-      // Réinitialiser les états des entités
-      map.removeFeatureState({ source: 'communes' });
-      map.removeFeatureState({ source: 'departements' });
-
-      // Supprimer le cercle de recherche s'il existe
-      if (map.getSource('search-circle')) {
-        if (map.getLayer('search-circle')) {
-          map.removeLayer('search-circle');
-        }
-        map.removeSource('search-circle');
-      }
-
-      if (layerType === 'com') {
-        map.setLayoutProperty('communes-layer', 'visibility', 'visible');
-        map.setLayoutProperty('communes-labels', 'visibility', 'visible');
-        map.setLayoutProperty('departements-layer', 'visibility', 'none');
-        map.setLayoutProperty('departements-labels', 'visibility', 'none');
-      } else if (layerType === 'dep') {
-        map.setLayoutProperty('communes-layer', 'visibility', 'none');
-        map.setLayoutProperty('communes-labels', 'visibility', 'none');
-        map.setLayoutProperty('departements-layer', 'visibility', 'visible');
-        map.setLayoutProperty('departements-labels', 'visibility', 'visible');
-      } else {
-        map.setLayoutProperty('communes-layer', 'visibility', 'none');
-        map.setLayoutProperty('communes-labels', 'visibility', 'none');
-        map.setLayoutProperty('departements-layer', 'visibility', 'none');
-        map.setLayoutProperty('departements-labels', 'visibility', 'none');
-      }
-    };
-
-      function addIrisLayer() {
-  map.addSource('iris', {
-    type: 'vector',
-    url: 'mapbox://hadrienleger.as1qqsaw' // Remplacez par votre Tileset ID pour les IRIS
-  });
-
-  map.addLayer({
-    id: 'iris-layer',
-    type: 'fill',
-    source: 'iris',
-    'source-layer': 'IRIS_FRANCE_COMPLETE_WGS84_21-9k6z9i', // Remplacez par le nom du layer dans votre tileset
-    paint: {
-      'fill-color': '#F39C12',
-      'fill-opacity': 0.6,
-      'fill-outline-color': '#FFFFFF'
-    },
-  });
+   // Ajouter la couche selon son type
+   switch(config.type) {
+       case 'choropleth':
+           addChoroplethLayer(layerId, config);
+           break;
+       case 'selectable':
+           addSelectableLayer(layerId, config);
+           break;
+       case 'simple':
+           addSimpleLayer(layerId, config);
+           break;
+   }
 }
 
+function addSelectableLayer(layerId, config) {
+   // Ajouter la couche principale
+   map.addLayer({
+       id: layerId,
+       type: 'fill',
+       source: layerId,
+       'source-layer': config.sourceLayer,
+       paint: config.paint
+   });
 
-function showSelectedIris(codesIris) {
-  console.log('showSelectedIris appelée avec:', codesIris);
-  
-  // Utiliser l'opérateur 'match' pour le filtre
-  const filter = ['match', ['get', 'CODE_IRIS'], codesIris, true, false];
-  console.log('Filtre appliqué:', filter);
-  
-  try {
-    map.setFilter('iris-layer', filter);
-    console.log('Filtre appliqué avec succès');
-  } catch (error) {
-    console.error('Erreur lors de l\'application du filtre:', error);
-  }
+   // Ajouter les interactions
+   if (config.interactions?.selectable) {
+       map.on('click', layerId, function(e) {
+           handleFeatureClick(e, config.interactions.bubbleFunction);
+       });
 
-  // Cacher les autres couches
-  map.setLayoutProperty('communes-layer', 'visibility', 'none');
-  map.setLayoutProperty('communes-labels', 'visibility', 'none');
-  map.setLayoutProperty('departements-layer', 'visibility', 'none');
-  map.setLayoutProperty('departements-labels', 'visibility', 'none');
+       if (config.interactions.cursor) {
+           map.on('mouseenter', layerId, function() {
+               map.getCanvas().style.cursor = config.interactions.cursor;
+           });
 
-// Supprimer le cercle de recherche s'il existe
-  if (map.getSource('search-circle')) {
-    if (map.getLayer('search-circle')) {
-      map.removeLayer('search-circle');
-    }
-    map.removeSource('search-circle');
-  }
+           map.on('mouseleave', layerId, function() {
+               map.getCanvas().style.cursor = '';
+           });
+       }
+   }
 
-  // Afficher la couche IRIS
-  map.setLayoutProperty('iris-layer', 'visibility', 'visible');
-
-  // Zoomer sur l'étendue des IRIS sélectionnés
-  fitMapToIris(codesIris);
+   // Ajouter les labels si configurés
+   if (config.labels?.enabled) {
+       map.addLayer({
+           id: `${layerId}-labels`,
+           type: 'symbol',
+           source: layerId,
+           'source-layer': config.sourceLayer,
+           minzoom: config.labels.minZoom,
+           layout: config.labels.layout,
+           paint: config.labels.paint
+       }, layerId);
+   }
 }
 
-function fitMapToIris(codesIris) {
-  console.log('fitMapToIris appelée avec:', codesIris);
+function addChoroplethLayer(layerId, config) {
+   const layerIdFull = `${layerId}-choropleth`;
+   
+   if (map.getLayer(layerIdFull)) {
+       map.removeLayer(layerIdFull);
+   }
 
-  // Attendre que la carte ait fini de rendre les changements
-  map.once('idle', () => {
-    try {
-      // Obtenir les features visibles de la couche iris-layer
-      const features = map.queryRenderedFeatures({ layers: ['iris-layer'] });
-      console.log('Nombre de features rendues:', features.length);
+   const colorExpression = ['step', ['get', config.property]];
+   config.breaks.forEach((break_, i) => {
+       colorExpression.push(break_);
+       colorExpression.push(config.colors[i]);
+   });
+   colorExpression.push(config.colors[config.colors.length - 1]);
 
-      if (features.length > 0) {
-        const bounds = new mapboxgl.LngLatBounds();
-        features.forEach(feature => {
-          if (feature.geometry) {
-            if (feature.geometry.type === 'Polygon') {
-              feature.geometry.coordinates[0].forEach(coord => bounds.extend(coord));
-            } else if (feature.geometry.type === 'MultiPolygon') {
-              feature.geometry.coordinates.forEach(polygon => {
-                polygon[0].forEach(coord => bounds.extend(coord));
-              });
-            }
-          }
-        });
+   map.addLayer({
+       id: layerIdFull,
+       type: 'fill',
+       source: layerId,
+       'source-layer': config.sourceLayer,
+       paint: {
+           'fill-color': colorExpression,
+           'fill-opacity': 0.7,
+           'fill-outline-color': '#ffffff'
+       }
+   });
 
-        console.log('Ajustement de la vue sur les features trouvées');
-        map.fitBounds(bounds, { padding: 20, maxZoom: 14 });
-      } else {
-        console.warn('Aucune feature IRIS visible trouvée.');
-        // Optionnel : zoomer sur la France entière ou une zone par défaut
-        map.fitBounds([[-5.1406, 41.3337], [9.5593, 51.0891]], { maxZoom: 10 });
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'ajustement de la vue:', error);
-      map.fitBounds([[-5.1406, 41.3337], [9.5593, 51.0891]], { maxZoom: 10 });
-    }
-  });
+   updateLegend(config);
 }
 
-// Fonction accessible depuis Bubble pour afficher les IRIS
-window.showIrisOnMap = function(codesIris) {
-  if (map && codesIris && Array.isArray(codesIris)) {
-    showSelectedIris(codesIris);
-  } else {
-    console.error('La carte n\'est pas initialisée ou les codes IRIS ne sont pas valides.');
-  }
+function addSimpleLayer(layerId, config) {
+   map.addLayer({
+       id: layerId,
+       type: 'fill',
+       source: layerId,
+       'source-layer': config.sourceLayer,
+       paint: config.paint
+   });
+}
+
+function handleFeatureClick(e, layerType) {
+   if (currentLayerType !== layerType) {
+       return;
+   }
+
+   var feature = e.features[0];
+   var properties = feature.properties;
+   var config = layerConfigs[layerType];
+   var id;
+
+   if (config.interactions.specialCases?.ids.includes(properties[config.interactions.idField])) {
+       id = properties[config.interactions.specialCases.alternateField];
+   } else {
+       id = properties[config.interactions.idField];
+   }
+
+   if (!id) {
+       console.error('Identifiant non trouvé pour la feature sélectionnée.');
+       return;
+   }
+
+   // Gérer la sélection/désélection
+   var index = selectedFeatures.indexOf(id);
+   if (index > -1) {
+       selectedFeatures.splice(index, 1);
+       map.setFeatureState(
+           { source: layerType, sourceLayer: config.sourceLayer, id: feature.id },
+           { selected: false }
+       );
+   } else {
+       selectedFeatures.push(id);
+       map.setFeatureState(
+           { source: layerType, sourceLayer: config.sourceLayer, id: feature.id },
+           { selected: true }
+       );
+   }
+
+   // Envoyer les données à Bubble
+   if (typeof bubble_fn_selectedFeatures === 'function') {
+       bubble_fn_selectedFeatures({
+           output1: config.interactions.bubbleFunction,
+           outputlist1: selectedFeatures
+       });
+   }
+}
+
+function hideAllLayers() {
+   // Cacher toutes les couches existantes
+   Object.keys(layerConfigs).forEach(layerId => {
+       const config = layerConfigs[layerId];
+       
+       // Cacher la couche principale
+       if (map.getLayer(layerId)) {
+           map.setLayoutProperty(layerId, 'visibility', 'none');
+       }
+       
+       // Cacher les labels si présents
+       if (config.labels?.enabled && map.getLayer(`${layerId}-labels`)) {
+           map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
+       }
+       
+       // Cacher les couches choroplèthes
+       if (config.type === 'choropleth' && map.getLayer(`${layerId}-choropleth`)) {
+           map.setLayoutProperty(`${layerId}-choropleth`, 'visibility', 'none');
+       }
+   });
+
+   // Cacher la légende
+   document.getElementById('legend').style.display = 'none';
+}
+
+function updateLegend(config) {
+   const legend = document.getElementById('legend');
+   legend.innerHTML = `<h4>${config.title}</h4>`;
+   
+   config.labels.forEach((label, i) => {
+       legend.innerHTML += `
+           <div class="legend-item">
+               <div class="legend-color" style="background: ${config.colors[i]}"></div>
+               <span>${label}</span>
+           </div>
+       `;
+   });
+   
+   legend.style.display = 'block';
+}
+
+// Interface avec Bubble
+window.updateMapLayers = function(layerType) {
+   currentLayerType = layerType;
+   selectedFeatures = []; // Réinitialiser les sélections
+   
+   hideAllLayers();
+
+   // Afficher la couche demandée
+   if (layerConfigs[layerType]) {
+       addLayer(layerType);
+
+       // Rendre la couche visible
+       map.setLayoutProperty(layerType, 'visibility', 'visible');
+       
+       // Rendre les labels visibles si présents
+       if (layerConfigs[layerType].labels?.enabled) {
+           map.setLayoutProperty(`${layerType}-labels`, 'visibility', 'visible');
+       }
+       
+       // Rendre la couche choroplèthe visible si applicable
+       if (layerConfigs[layerType].type === 'choropleth') {
+           map.setLayoutProperty(`${layerType}-choropleth`, 'visibility', 'visible');
+       }
+   }
 };
 
+// Initialiser la carte au chargement
+window.onload = initializeMap;
 
 
-    // Fonction pour centrer la carte sur un point et afficher un cercle (pour le premier onglet)
-    window.bubble_fn_updateMap = function(latitude, longitude, radius) {
-      if (map) {
-        // Conversion des paramètres en nombres
-        latitude = parseFloat(latitude);
-        longitude = parseFloat(longitude);
-        radius = parseFloat(radius);
-
-        // Vérification des valeurs
-        if (isNaN(latitude) || isNaN(longitude) || isNaN(radius)) {
-          console.error('Paramètres invalides pour bubble_fn_updateMap');
-          return;
-        }
-
-        // Centrer la carte sur les coordonnées spécifiées
-        map.flyTo({ center: [longitude, latitude], zoom: 13 });
-
-        // Supprimer le cercle existant s'il y en a un
-        if (map.getSource('search-circle')) {
-          if (map.getLayer('search-circle')) {
-            map.removeLayer('search-circle');
-          }
-          map.removeSource('search-circle');
-        }
-
-        // Créer le GeoJSON du cercle
-        var circleGeoJSON = createGeoJSONCircle([longitude, latitude], radius);
-
-        // Ajouter le cercle à la carte
-        map.addSource('search-circle', {
-          'type': 'geojson',
-          'data': circleGeoJSON
-        });
-
-        map.addLayer({
-          'id': 'search-circle',
-          'type': 'fill',
-          'source': 'search-circle',
-          'layout': {},
-          'paint': {
-            'fill-color': '#007cbf',
-            'fill-opacity': 0.2
-          }
-        });
-      } else {
-        console.log('La carte n\'est pas encore initialisée');
-      }
-    };
-
-    // Fonction pour créer un cercle en GeoJSON
-    function createGeoJSONCircle(center, radiusInKm, points) {
-      if (!points) points = 64;
-
-      var coords = {
-        latitude: center[1],
-        longitude: center[0]
-      };
-
-      var km = radiusInKm;
-
-      var ret = [];
-      var distanceX = km / (111.320 * Math.cos(coords.latitude * Math.PI / 180));
-      var distanceY = km / 110.574;
-
-      var theta, x, y;
-      for (var i = 0; i < points; i++) {
-        theta = (i / points) * (2 * Math.PI);
-        x = distanceX * Math.cos(theta);
-        y = distanceY * Math.sin(theta);
-
-        ret.push([coords.longitude + x, coords.latitude + y]);
-      }
-      ret.push(ret[0]);
-
-      return {
-        "type": "Feature",
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [ret]
-        }
-      };
-    }
-
-    // Initialiser la carte au chargement de la page
-    window.onload = initializeMap;
   </script>
 </body>
 </html>
