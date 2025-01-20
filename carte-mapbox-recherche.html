@@ -42,388 +42,341 @@
 
   <!-- Script principal -->
   <script>
-    // Variable globale pour la carte
-    let map;
 
-    // Variables pour stocker les sélections
-    let selectedFeatures = [];
-    let currentLayerType = 'none'; // 'com', 'dep', 'niveauVie', 'logementSocial', 'none', etc.
+/****************************************************
+ * Code principal JavaScript pour la carte Mapbox
+ * ----------------------------------------------
+ * 1) On a un `layerConfigs` décrivant chaque couche.
+ * 2) Au chargement de la carte, on ajoute les sources (map.on('load')).
+ * 3) On a des fonctions addLayer() qui gèrent 
+ *    - 'selectable' 
+ *    - 'choropleth' 
+ *    - 'filterable' (ex. carreaux 200m)
+ * 4) On a hideAllLayers() pour cacher toutes les couches si besoin.
+ * 5) On a des fonctions publiques (window.xxx) 
+ *    que Bubble peut appeler via "Run JavaScript".
+ ****************************************************/
 
+let map;
+let selectedFeatures = [];  // stocke les codes insee sélectionnés (pour communes/départ)
+let currentLayerType = 'none'; // ex. 'com', 'dep', 'niveauVie', etc.
 
-    // Configuration unifiée de toutes les couches
+// Configuration "unifiée" des différentes couches
 const layerConfigs = {
-    communes: {
-        type: 'selectable',
-        source: {
-            type: 'vector',
-            url: 'mapbox://hadrienleger.cya562rc'
-        },
-        sourceLayer: 'simplifie-fusion-communes-et--439qo9',
-        paint: {
-            'fill-color': [
-                'case',
-                ['boolean', ['feature-state', 'selected'], false],
-                '#FF0000',
-                '#2C3E50'
-            ],
-            'fill-opacity': 0.8,
-            'fill-outline-color': '#FFFFFF'
-        },
-        labels: {
-            enabled: true,
-            layout: {
-                'text-field': ['get', 'NOM'],
-                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                'text-size': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    5, 8,
-                    12, 8
-                ],
-                'text-anchor': 'center',
-                'text-allow-overlap': false
-            },
-            paint: {
-                'text-color': '#FFFFFF',
-                'text-halo-color': '#000000',
-                'text-halo-width': 1
-            },
-            minZoom: 8
-        },
-        interactions: {
-            selectable: true,
-            idField: 'INSEE_COM',
-            specialCases: {
-                ids: ['75056', '69123', '13055'],
-                alternateField: 'INSEE_ARM'
-            },
-            cursor: 'pointer',
-            bubbleFunction: 'com'
-        }
+
+  // Couche SELECTABLE: communes
+  communes: {
+    type: 'selectable',
+    source: {
+      type: 'vector',
+      url: 'mapbox://hadrienleger.cya562rc'
     },
-    departements: {
-        type: 'selectable',
-        source: {
-            type: 'vector',
-            url: 'mapbox://hadrienleger.7ys4ypx4'
-        },
-        sourceLayer: 'simplifie-DEPARTEMENT-asio6w',
-        paint: {
-            'fill-color': [
-                'case',
-                ['boolean', ['feature-state', 'selected'], false],
-                '#FF0000',
-                '#8E44AD'
-            ],
-            'fill-opacity': 0.5,
-            'fill-outline-color': '#FFFFFF'
-        },
-        labels: {
-            enabled: true,
-            layout: {
-                'text-field': [
-                    'format',
-                    ['get', 'INSEE_DEP'],
-                    {},
-                    ' ',
-                    {},
-                    ['get', 'NOM']
-                ],
-                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                'text-size': [
-                    'interpolate',
-                    ['linear'],
-                    ['zoom'],
-                    5, 10,
-                    12, 11
-                ],
-                'text-anchor': 'center',
-                'text-allow-overlap': false
-            },
-            paint: {
-                'text-color': '#FFFFFF',
-                'text-halo-color': '#000000',
-                'text-halo-width': 1
-            },
-            minZoom: 5
-        },
-        interactions: {
-            selectable: true,
-            idField: 'INSEE_DEP',
-            cursor: 'pointer',
-            bubbleFunction: 'dep'
-        }
+    sourceLayer: 'simplifie-fusion-communes-et--439qo9',
+    paint: {
+      'fill-color': [
+        'case',
+        ['boolean', ['feature-state', 'selected'], false],
+        '#FF0000',
+        '#2C3E50'
+      ],
+      'fill-opacity': 0.8,
+      'fill-outline-color': '#FFFFFF'
     },
-    niveauVie: {
-        type: 'choropleth',
-        source: {
-            type: 'vector',
-            url: 'mapbox://hadrienleger.filosofi2019'
-        },
-        sourceLayer: 'hadrienleger.filosofi2019',
-        property: 'nv_moyen',
-        breaks: [15000, 20000, 25000, 30000, 35000],
-        colors: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'],
-        title: 'Niveau de vie médian',
-        labels: ['< 15k€', '15-20k€', '20-25k€', '25-30k€', '30-35k€', '> 35k€']
-    },
-    logementSocial: {
-        type: 'choropleth',
-        source: {
-            type: 'vector',
-            url: 'mapbox://hadrienleger.filosofi2019'
-        },
-        sourceLayer: 'hadrienleger.filosofi2019',
-        property: 'part_log_soc',
-        breaks: [5, 10, 15, 20, 25],
-        colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
-        title: 'Part de logements sociaux (%)',
-        labels: ['< 5%', '5-10%', '10-15%', '15-20%', '20-25%', '> 25%']
+    // ID property => ex. 'INSEE_COM'
+    interactions: {
+      selectable: true,
+      idField: 'INSEE_COM',
+      cursor: 'pointer',
+      bubbleFunction: 'com'
     }
+  },
+
+  // Couche SELECTABLE: départements
+  departements: {
+    type: 'selectable',
+    source: {
+      type: 'vector',
+      url: 'mapbox://hadrienleger.7ys4ypx4'
+    },
+    sourceLayer: 'simplifie-DEPARTEMENT-asio6w',
+    paint: {
+      'fill-color': [
+        'case',
+        ['boolean', ['feature-state', 'selected'], false],
+        '#FF0000',
+        '#8E44AD'
+      ],
+      'fill-opacity': 0.5,
+      'fill-outline-color': '#FFFFFF'
+    },
+    interactions: {
+      selectable: true,
+      idField: 'INSEE_DEP',
+      cursor: 'pointer',
+      bubbleFunction: 'dep'
+    }
+  },
+
+  // Couche CHOROPLETH: ex. niveauVie
+  niveauVie: {
+    type: 'choropleth',
+    source: {
+      type: 'vector',
+      url: 'mapbox://hadrienleger.filosofi2019'
+    },
+    sourceLayer: 'hadrienleger.filosofi2019',
+    property: 'nv_moyen', 
+    breaks: [15000, 20000, 25000, 30000, 35000],
+    colors: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'],
+    title: 'Niveau de vie médian'
+  },
+
+  // Couche CHOROPLETH: ex. part_log_soc
+  logementSocial: {
+    type: 'choropleth',
+    source: {
+      type: 'vector',
+      url: 'mapbox://hadrienleger.filosofi2019'
+    },
+    sourceLayer: 'hadrienleger.filosofi2019',
+    property: 'part_log_soc',
+    breaks: [5, 10, 15, 20, 25],
+    colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+    title: 'Part de logements sociaux (%)'
+  },
+
+  // Couche FILTERABLE: pour les carreaux de 200m
+  carresResult: {
+    type: 'filterable',
+    source: {
+      type: 'vector',
+      url: 'mapbox://hadrienleger.grille200m' // ton tileset MBTiles
+    },
+    sourceLayer: 'grid200m_source_layer', // à adapter au nom exact
+    paint: {
+      'fill-color': '#FF0000',
+      'fill-opacity': 0.5
+    },
+    idField: 'IDINSPIRE' // le champ d'ID (ex: "CRS3035RES200mN2893400E3756600")
+  }
+
 };
 
-    // Fonction pour initialiser la carte
-    function initializeMap() {
-      mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA'; // Remplacez par votre token Mapbox
+// ----------------------
+//  Initialisation carte
+// ----------------------
+function initializeMap() {
+  mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
 
-      // Création de la carte
-       map = new mapboxgl.Map({
-         container: 'map',
-         style: 'mapbox://styles/mapbox/light-v11',
-         center: [2.2137, 46.2276],
-         zoom: 5
-     });
+  map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/light-v11',
+    center: [2.2137, 46.2276],
+    zoom: 5
+  });
 
-     map.on('load', function() {
-         // Ajouter toutes les sources au chargement
-         Object.keys(layerConfigs).forEach(layerId => {
-             const config = layerConfigs[layerId];
-             if (!map.getSource(layerId)) {
-                 map.addSource(layerId, config.source);
-             }
-         });
-         
-         // Cacher toutes les couches par défaut
-         hideAllLayers();
-     });
-    }
+  map.on('load', () => {
+    // Ajouter toutes les sources
+    Object.keys(layerConfigs).forEach(layerId => {
+      if (!map.getSource(layerId)) {
+        map.addSource(layerId, layerConfigs[layerId].source);
+      }
+    });
 
+    // On n’ajoute pas forcément toutes les couches d’emblée
+    // En tout cas on les cache / ou on attend l’appel "addLayer" pour les activer
+  });
+}
 
-// Fonction unique pour ajouter une couche
+// ----------------------------------------------------------------------------
+// Fonctions d'ajout de couches
+// ----------------------------------------------------------------------------
+
 function addLayer(layerId) {
-   const config = layerConfigs[layerId];
-   if (!config) return;
+  const config = layerConfigs[layerId];
+  if (!config) return;
 
-   // Ajouter la couche selon son type
-   switch(config.type) {
-       case 'choropleth':
-           addChoroplethLayer(layerId, config);
-           break;
-       case 'selectable':
-           addSelectableLayer(layerId, config);
-           break;
-       case 'simple':
-           addSimpleLayer(layerId, config);
-           break;
-   }
+  switch (config.type) {
+    case 'selectable':
+      addSelectableLayer(layerId, config);
+      break;
+    case 'choropleth':
+      addChoroplethLayer(layerId, config);
+      break;
+    case 'filterable':
+      addFilterableLayer(layerId, config);
+      break;
+  }
 }
 
 function addSelectableLayer(layerId, config) {
-   // Ajouter la couche principale
-   map.addLayer({
-       id: layerId,
-       type: 'fill',
-       source: layerId,
-       'source-layer': config.sourceLayer,
-       paint: config.paint
-   });
+  // Ajouter la couche si elle n’existe pas
+  if (!map.getLayer(layerId)) {
+    map.addLayer({
+      id: layerId,
+      type: 'fill',
+      source: layerId,
+      'source-layer': config.sourceLayer,
+      paint: config.paint
+    });
+  }
+  
+  // Gérer la sélection
+  if (config.interactions?.selectable) {
+    map.on('click', layerId, (e) => {
+      handleFeatureClick(e, layerId);
+    });
 
-   // Ajouter les interactions
-   if (config.interactions?.selectable) {
-       map.on('click', layerId, function(e) {
-           handleFeatureClick(e, config.interactions.bubbleFunction);
-       });
+    if (config.interactions.cursor) {
+      map.on('mouseenter', layerId, () => {
+        map.getCanvas().style.cursor = config.interactions.cursor;
+      });
+      map.on('mouseleave', layerId, () => {
+        map.getCanvas().style.cursor = '';
+      });
+    }
+  }
+}
 
-       if (config.interactions.cursor) {
-           map.on('mouseenter', layerId, function() {
-               map.getCanvas().style.cursor = config.interactions.cursor;
-           });
+function handleFeatureClick(e, layerId) {
+  const config = layerConfigs[layerId];
+  const feature = e.features[0];
+  const id = feature.properties[config.interactions.idField];
+  
+  // Toggle
+  const idx = selectedFeatures.indexOf(id);
+  if (idx > -1) {
+    selectedFeatures.splice(idx, 1);
+    map.setFeatureState(
+      { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
+      { selected: false }
+    );
+  } else {
+    selectedFeatures.push(id);
+    map.setFeatureState(
+      { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
+      { selected: true }
+    );
+  }
 
-           map.on('mouseleave', layerId, function() {
-               map.getCanvas().style.cursor = '';
-           });
-       }
-   }
-
-   // Ajouter les labels si configurés
-   if (config.labels?.enabled) {
-       map.addLayer({
-           id: `${layerId}-labels`,
-           type: 'symbol',
-           source: layerId,
-           'source-layer': config.sourceLayer,
-           minzoom: config.labels.minZoom,
-           layout: config.labels.layout,
-           paint: config.labels.paint
-       }, layerId);
-   }
+  // Envoyer liste à Bubble
+  if (typeof bubble_fn_selectedFeatures === 'function') {
+    bubble_fn_selectedFeatures({
+      output1: config.interactions.bubbleFunction,
+      outputlist1: selectedFeatures
+    });
+  }
 }
 
 function addChoroplethLayer(layerId, config) {
-   const layerIdFull = `${layerId}-choropleth`;
-   
-   if (map.getLayer(layerIdFull)) {
-       map.removeLayer(layerIdFull);
-   }
+  const layerIdFull = `${layerId}-choropleth`;
+  if (!map.getLayer(layerIdFull)) {
+    // Construire l'expression color
+    const colorExpr = ['step', ['get', config.property]];
+    config.breaks.forEach((brk, i) => {
+      colorExpr.push(brk);
+      colorExpr.push(config.colors[i]);
+    });
+    colorExpr.push(config.colors[config.colors.length - 1]);
 
-   const colorExpression = ['step', ['get', config.property]];
-   config.breaks.forEach((break_, i) => {
-       colorExpression.push(break_);
-       colorExpression.push(config.colors[i]);
-   });
-   colorExpression.push(config.colors[config.colors.length - 1]);
-
-   map.addLayer({
-       id: layerIdFull,
-       type: 'fill',
-       source: layerId,
-       'source-layer': config.sourceLayer,
-       paint: {
-           'fill-color': colorExpression,
-           'fill-opacity': 0.7,
-           'fill-outline-color': '#ffffff'
-       }
-   });
-
-   updateLegend(config);
+    map.addLayer({
+      id: layerIdFull,
+      type: 'fill',
+      source: layerId,
+      'source-layer': config.sourceLayer,
+      paint: {
+        'fill-color': colorExpr,
+        'fill-opacity': 0.7,
+        'fill-outline-color': '#ffffff'
+      }
+    });
+  }
 }
 
-function addSimpleLayer(layerId, config) {
-   map.addLayer({
-       id: layerId,
-       type: 'fill',
-       source: layerId,
-       'source-layer': config.sourceLayer,
-       paint: config.paint
-   });
+function addFilterableLayer(layerId, config) {
+  // Ajouter la couche si pas déjà existante
+  if (!map.getLayer(layerId)) {
+    map.addLayer({
+      id: layerId,
+      type: 'fill',
+      source: layerId,
+      'source-layer': config.sourceLayer,
+      paint: config.paint
+    });
+  }
+  // A la base, pas de filtre => tout est visible ou on le cache
+  // map.setLayoutProperty(layerId, 'visibility', 'none');
+  // ou un setFilter(layerId, false)
 }
 
-function handleFeatureClick(e, layerType) {
-   if (currentLayerType !== layerType) {
-       return;
-   }
-
-   var feature = e.features[0];
-   var properties = feature.properties;
-   var config = layerConfigs[layerType];
-   var id;
-
-   if (config.interactions.specialCases?.ids.includes(properties[config.interactions.idField])) {
-       id = properties[config.interactions.specialCases.alternateField];
-   } else {
-       id = properties[config.interactions.idField];
-   }
-
-   if (!id) {
-       console.error('Identifiant non trouvé pour la feature sélectionnée.');
-       return;
-   }
-
-   // Gérer la sélection/désélection
-   var index = selectedFeatures.indexOf(id);
-   if (index > -1) {
-       selectedFeatures.splice(index, 1);
-       map.setFeatureState(
-           { source: layerType, sourceLayer: config.sourceLayer, id: feature.id },
-           { selected: false }
-       );
-   } else {
-       selectedFeatures.push(id);
-       map.setFeatureState(
-           { source: layerType, sourceLayer: config.sourceLayer, id: feature.id },
-           { selected: true }
-       );
-   }
-
-   // Envoyer les données à Bubble
-   if (typeof bubble_fn_selectedFeatures === 'function') {
-       bubble_fn_selectedFeatures({
-           output1: config.interactions.bubbleFunction,
-           outputlist1: selectedFeatures
-       });
-   }
-}
+// ----------------------------------------------------------------------------
+// Fonctions d'utilisation
+// ----------------------------------------------------------------------------
 
 function hideAllLayers() {
-   // Cacher toutes les couches existantes
-   Object.keys(layerConfigs).forEach(layerId => {
-       const config = layerConfigs[layerId];
-       
-       // Cacher la couche principale
-       if (map.getLayer(layerId)) {
-           map.setLayoutProperty(layerId, 'visibility', 'none');
-       }
-       
-       // Cacher les labels si présents
-       if (config.labels?.enabled && map.getLayer(`${layerId}-labels`)) {
-           map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
-       }
-       
-       // Cacher les couches choroplèthes
-       if (config.type === 'choropleth' && map.getLayer(`${layerId}-choropleth`)) {
-           map.setLayoutProperty(`${layerId}-choropleth`, 'visibility', 'none');
-       }
-   });
-
-   // Cacher la légende
-   document.getElementById('legend').style.display = 'none';
+  Object.keys(layerConfigs).forEach(layerId => {
+    // type choropleth => la vraie couche est layerId-choropleth
+    if (layerConfigs[layerId].type === 'choropleth') {
+      const cId = `${layerId}-choropleth`;
+      if (map.getLayer(cId)) {
+        map.setLayoutProperty(cId, 'visibility', 'none');
+      }
+    } else {
+      if (map.getLayer(layerId)) {
+        map.setLayoutProperty(layerId, 'visibility', 'none');
+      }
+    }
+  });
 }
 
-function updateLegend(config) {
-   const legend = document.getElementById('legend');
-   legend.innerHTML = `<h4>${config.title}</h4>`;
-   
-   config.labels.forEach((label, i) => {
-       legend.innerHTML += `
-           <div class="legend-item">
-               <div class="legend-color" style="background: ${config.colors[i]}"></div>
-               <span>${label}</span>
-           </div>
-       `;
-   });
-   
-   legend.style.display = 'block';
-}
+// Exemple de fonction publique : affiche la couche X
+window.updateMapLayers = function(layerId) {
+  currentLayerType = layerId;
+  selectedFeatures = []; // reset
 
-// Interface avec Bubble
-window.updateMapLayers = function(layerType) {
-   currentLayerType = layerType;
-   selectedFeatures = []; // Réinitialiser les sélections
-   
-   hideAllLayers();
+  hideAllLayers();
 
-   // Afficher la couche demandée
-   if (layerConfigs[layerType]) {
-       addLayer(layerType);
+  if (layerConfigs[layerId]) {
+    addLayer(layerId);
 
-       // Rendre la couche visible
-       map.setLayoutProperty(layerType, 'visibility', 'visible');
-       
-       // Rendre les labels visibles si présents
-       if (layerConfigs[layerType].labels?.enabled) {
-           map.setLayoutProperty(`${layerType}-labels`, 'visibility', 'visible');
-       }
-       
-       // Rendre la couche choroplèthe visible si applicable
-       if (layerConfigs[layerType].type === 'choropleth') {
-           map.setLayoutProperty(`${layerType}-choropleth`, 'visibility', 'visible');
-       }
-   }
+    // Rendre visible
+    if (layerConfigs[layerId].type === 'choropleth') {
+      map.setLayoutProperty(`${layerId}-choropleth`, 'visibility', 'visible');
+    } else {
+      map.setLayoutProperty(layerId, 'visibility', 'visible');
+    }
+  }
 };
 
-// Initialiser la carte au chargement
+
+// ----------------------------------------------------------------------------
+// NEW: Gérer l'affichage des carreaux 200m (filterable) => setFilter
+// ----------------------------------------------------------------------------
+
+window.updateCarresResult = function(listOfIDs) {
+  const layerId = 'carresResult';
+
+  // Ajouter la couche si pas déjà en place
+  addLayer(layerId);
+
+  // Rendre visible la couche
+  map.setLayoutProperty(layerId, 'visibility', 'visible');
+
+  const config = layerConfigs[layerId];
+  map.setFilter(layerId, [
+    "in",
+    config.idField,
+    ["literal", listOfIDs]
+  ]);
+};
+
+// ----------------------------------------------------------------------------
+// Initialize map on page load
+// ----------------------------------------------------------------------------
 window.onload = initializeMap;
+
+
+
 
 
   </script>
