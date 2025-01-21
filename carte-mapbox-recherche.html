@@ -69,7 +69,7 @@ const layerConfigs = {
     type: 'selectable',
     source: {
       type: 'vector',
-      url: 'mapbox://hadrienleger.cya562rc' // ton URL tileset
+      url: 'mapbox://hadrienleger.cya562rc'
     },
     sourceLayer: 'simplifie-fusion-communes-et--439qo9',
     paint: {
@@ -84,17 +84,20 @@ const layerConfigs = {
     },
     interactions: {
       selectable: true,
-      idField: 'INSEE_COM',  
-      cursor: 'pointer',     
-      bubbleFunction: 'com'  // pour Bubble
+      idField: 'INSEE_COM',
+      cursor: 'pointer',
+      bubbleFunction: 'com',
+      specialCases: {
+        ids: ['75056', '69123', '13055'], // codes communes globales de Paris, Lyon, Marseille
+        alternateField: 'INSEE_ARM'       // champ contenant l’arrondissement
+      }
     },
-    // Labels
     labels: {
       enabled: true,
-      field: 'NOM',        // quel champ afficher en label
-      textSize: 12,        // ex. text-size
-      color: '#FFFFFF',    // ex. text-color
-      haloColor: '#000000',
+      field: 'NOM',
+      textSize: 12,
+      color: '#FFF',
+      haloColor: '#000',
       haloWidth: 1
     }
   },
@@ -140,7 +143,7 @@ const layerConfigs = {
       type: 'vector',
       url: 'mapbox://hadrienleger.filosofi2019'
     },
-    sourceLayer: 'hadrienleger.filosofi2019',
+    sourceLayer: 'c200_filosofi_2019',
     // config par défaut si pas surchargé
     property: 'nv_moyen', 
     breaks: [15000, 20000, 25000, 30000, 35000],
@@ -158,7 +161,7 @@ const layerConfigs = {
       type: 'vector',
       url: 'mapbox://hadrienleger.filosofi2019'
     },
-    sourceLayer: 'hadrienleger.filosofi2019',
+    sourceLayer: 'c200_filosofi_2019',
     property: 'part_log_soc',
     breaks: [5, 10, 15, 20, 25],
     colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
@@ -174,7 +177,7 @@ const layerConfigs = {
       type: 'vector',
       url: 'mapbox://hadrienleger.grille200m'
     },
-    sourceLayer: 'grid200m_source_layer',
+    sourceLayer: 'grille200m_metropole',
     paint: {
       'fill-color': '#FF0000',
       'fill-opacity': 0.5
@@ -327,17 +330,36 @@ function handleFeatureClick(e, layerId) {
   const config = layerConfigs[layerId];
   const feature = e.features[0];
   if (!feature) return;
-  const idVal = feature.properties[config.interactions.idField];
 
-  // Toggle
+  // 1) Récupérer l'ID principal
+  let idVal = feature.properties[config.interactions.idField];
+
+  // 2) Gérer les cas Paris, Lyon, Marseille
+  //    si config.interactions.specialCases existe
+  if (config.interactions.specialCases) {
+    const sc = config.interactions.specialCases;  // ex. { ids: ['75056','69123','13055'], alternateField: 'INSEE_ARM' }
+
+    // On check si 'idVal' figure dans sc.ids
+    if (sc.ids.includes(idVal)) {
+      // On remplace par la valeur du champ alternateField, ex. 'INSEE_ARM'
+      const altValue = feature.properties[sc.alternateField];
+      if (altValue) {
+        idVal = altValue;
+      }
+    }
+  }
+
+  // 3) Toggle la sélection
   const idx = selectedFeatures.indexOf(idVal);
   if (idx > -1) {
+    // Déjà sélectionné => on retire
     selectedFeatures.splice(idx, 1);
     map.setFeatureState(
       { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
       { selected: false }
     );
   } else {
+    // Pas encore sélectionné => on ajoute
     selectedFeatures.push(idVal);
     map.setFeatureState(
       { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
@@ -345,7 +367,7 @@ function handleFeatureClick(e, layerId) {
     );
   }
 
-  // Envoi à Bubble
+  // 4) Envoyer la liste mise à jour à Bubble
   if (typeof bubble_fn_selectedFeatures === 'function') {
     bubble_fn_selectedFeatures({
       output1: config.interactions.bubbleFunction,
@@ -353,6 +375,7 @@ function handleFeatureClick(e, layerId) {
     });
   }
 }
+
 
 // -------------------------------------
 // 6) Filtrage pour "filterable" type
