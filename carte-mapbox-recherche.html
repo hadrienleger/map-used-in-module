@@ -182,7 +182,7 @@ const layerConfigs = {
       'fill-color': '#FF0000',
       'fill-opacity': 0.5
     },
-    idField: 'IDINSPIRE'
+    idField: 'idINSPIRE'
   }
 
 };
@@ -383,11 +383,21 @@ function handleFeatureClick(e, layerId) {
 function setFilterableIDs(layerId, listOfIDs) {
   const config = layerConfigs[layerId];
   if (map.getLayer(layerId)) {
+    const filter = ["in", ["get", config.idField], ["literal", listOfIDs]];
+        console.log("Filtre appliqué:", JSON.stringify(filter));
     map.setFilter(layerId, [
       "in",
       config.idField,
       ["literal", listOfIDs]
     ]);
+
+     // Vérifier le filtre après application
+        const currentFilter = map.getFilter(layerId);
+        console.log("Filtre actuel:", JSON.stringify(currentFilter));
+
+        // Dans setFilterableIDs
+const features = map.queryRenderedFeatures({ layers: [layerId] });
+console.log("Exemple de propriétés:", features[0]?.properties);
   }
 }
 
@@ -440,12 +450,26 @@ window.updateMapLayers = function(layerId, options = {}) {
  */
 window.updateCarresResult = function(listOfIDs) {
   const layerId = 'carresResult';
+  const config = layerConfigs[layerId];  // Ajouter cette ligne pour le console.log
+
+    // Vérifier la source
+    const source = map.getSource(layerId);
+    console.log("Source:", source);
+    
+    // Vérifier les features
+    const features = map.querySourceFeatures(layerId, {
+        sourceLayer: config.sourceLayer
+    });
+    console.log("Features trouvées:", features);
+
   addLayer(layerId);  // s'assure que la couche est créée
   // Rendre visible la couche
   map.setLayoutProperty(layerId, 'visibility', 'visible');
 
   setFilterableIDs(layerId, listOfIDs);
   console.log("listOfIDs recu:", listOfIDs);
+  console.log("Applying setFilter to carresResult with property=", config.idField, " / nb IDs =", listOfIDs.length);
+  console.log("Layers:", map.getStyle().layers);
 };
 
 // ----------------------------------------------------------------------------
