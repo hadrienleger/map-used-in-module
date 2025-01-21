@@ -214,6 +214,7 @@ function initializeMap() {
 // 3) hideAllLayers() : masquer tout
 // -------------------------------------
 function hideAllLayers() {
+  console.log("=== hideAllLayers called ===");
   Object.keys(layerConfigs).forEach(layerId => {
     const config = layerConfigs[layerId];
     if (config.type === 'choropleth') {
@@ -395,10 +396,9 @@ function setFilterableIDs(layerId, listOfIDs) {
         const currentFilter = map.getFilter(layerId);
         console.log("Filtre actuel:", JSON.stringify(currentFilter));
 
-        // Dans setFilterableIDs
-const features = map.queryRenderedFeatures({ layers: [layerId] });
-console.log("Exemple de propriétés:", features[0]?.properties);
-  }
+      const features = map.queryRenderedFeatures({ layers: [layerId] });
+      console.log("Exemple de propriétés:", features[0]?.properties);
+        }
 }
 
 // ----------------------------------------------------------------------------
@@ -443,11 +443,7 @@ window.updateMapLayers = function(layerId, options = {}) {
 };
 
 
-/**
- * Permet de filtrer la couche "carresResult"
- * pour n'afficher que les carreaux dont l'ID figure 
- * dans listOfIDs (ex: ["CRS3035RES200mN2889200E3752600", ...]).
- */
+// Ancienne version qui n'a jamais marché, je la garde pour l'instant
 window.updateCarresResult = function(listOfIDs) {
   const layerId = 'carresResult';
   const config = layerConfigs[layerId];  // Ajouter cette ligne pour le console.log
@@ -470,6 +466,42 @@ window.updateCarresResult = function(listOfIDs) {
   console.log("listOfIDs recu:", listOfIDs);
   console.log("Applying setFilter to carresResult with property=", config.idField, " / nb IDs =", listOfIDs.length);
   console.log("Layers:", map.getStyle().layers);
+  map.moveLayer('carresResult')
+};
+
+// Deuxième test de fonction pour appeler la couche de carrés
+window.filterCarreaux = function(selectedIds) {
+    const LAYER_ID = 'carresResult';
+    const config = layerConfigs[LAYER_ID];
+
+  // On cache toutes les couches
+  hideAllLayers();
+
+    if (!config) {
+        console.error("Configuration non trouvée pour la couche carresResult");
+        return;
+    }
+
+    // Si la couche n'existe pas, on la crée
+    if (!map.getLayer(LAYER_ID)) {
+        map.addLayer({
+            id: LAYER_ID,
+            type: 'fill',
+            source: LAYER_ID,
+            'source-layer': config.sourceLayer,
+            paint: config.paint,
+            filter: ['in', ['get', config.idField], ['literal', selectedIds]]
+        });
+    } else {
+        // Sinon on met juste à jour le filtre
+        map.setFilter(LAYER_ID, ['in', ['get', config.idField], ['literal', selectedIds]]);
+    }
+
+    // Rendre la couche visible
+    map.setLayoutProperty(LAYER_ID, 'visibility', 'visible');
+
+    // Logs de debug
+    console.log(`Filtrage appliqué sur ${selectedIds.length} carreaux avec le champ ${config.idField}`);
 };
 
 // ----------------------------------------------------------------------------
