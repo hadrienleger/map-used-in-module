@@ -170,6 +170,22 @@ const layerConfigs = {
     }
   },
 
+    // Notes sur 20 des communes (insécurité)
+  notesInsecurite: {
+    type: 'choropleth',
+    source: {
+      type: 'vector',
+      url: 'mapbox://hadrienleger.7ypxua5r'
+    },
+    sourceLayer: 'communes_securite-2449ue',
+    property: 'note_sur_20',
+    breaks: [5, 10, 15, 20, 25],
+    colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+    labels: {
+      enabled: false
+    }
+  },
+
   // Couche FILTERABLE, ex. carreaux 200m
   carresResult: {
     type: 'filterable',
@@ -411,115 +427,4 @@ function setFilterableIDs(layerId, listOfIDs) {
         }
 }
 
-// ----------------------------------------------------------------------------
-// 7) Fonctions publiques pour Bubble
-// ----------------------------------------------------------------------------
-
-/**
- * Permet d'afficher la couche "layerId" 
- * (selectable, choropleth, filterable)
- * et de surcharger éventuellement la config 
- * (ex: property, breaks, colors pour choropleth).
- */
-window.updateMapLayers = function(layerId, options = {}) {
-  // 1) on cache toutes les couches
-  hideAllLayers();
-
-  // 2) on reset la sélection
-  selectedFeatures = [];
-  currentLayerId = layerId;
-
-  // 3) on ajoute la couche (et ses labels, éventuellement)
-  addLayer(layerId, options);
-
-  // 4) on la rend visible
-  const config = layerConfigs[layerId];
-  if (config.type === 'choropleth') {
-    const layerIdFull = layerId + '-choropleth';
-    if (map.getLayer(layerIdFull)) {
-      map.setLayoutProperty(layerIdFull, 'visibility', 'visible');
-    }
-    if (config.labels?.enabled && map.getLayer(layerId + '-labels')) {
-      map.setLayoutProperty(layerId + '-labels', 'visibility', 'visible');
-    }
-  } else {
-    if (map.getLayer(layerId)) {
-      map.setLayoutProperty(layerId, 'visibility', 'visible');
-    }
-    if (config.labels?.enabled && map.getLayer(layerId + '-labels')) {
-      map.setLayoutProperty(layerId + '-labels', 'visibility', 'visible');
-    }
-  }
-};
-
-
-// Ancienne version qui n'a jamais marché, je la garde pour l'instant
-window.updateCarresResult = function(listOfIDs) {
-  const layerId = 'carresResult';
-  const config = layerConfigs[layerId];  // Ajouter cette ligne pour le console.log
-
-    // Vérifier la source
-    const source = map.getSource(layerId);
-    console.log("Source:", source);
-    
-    // Vérifier les features
-    const features = map.querySourceFeatures(layerId, {
-        sourceLayer: config.sourceLayer
-    });
-    console.log("Features trouvées:", features);
-
-  addLayer(layerId);  // s'assure que la couche est créée
-  // Rendre visible la couche
-  map.setLayoutProperty(layerId, 'visibility', 'visible');
-
-  setFilterableIDs(layerId, listOfIDs);
-  console.log("listOfIDs recu:", listOfIDs);
-  console.log("Applying setFilter to carresResult with property=", config.idField, " / nb IDs =", listOfIDs.length);
-  console.log("Layers:", map.getStyle().layers);
-  map.moveLayer('carresResult')
-};
-
-// Deuxième test de fonction pour appeler la couche de carrés
-window.filterCarreaux = function(selectedIds) {
-    const LAYER_ID = 'carresResult';
-    const config = layerConfigs[LAYER_ID];
-
-  // On cache toutes les couches
-  hideAllLayers();
-
-    if (!config) {
-        console.error("Configuration non trouvée pour la couche carresResult");
-        return;
-    }
-
-    // Si la couche n'existe pas, on la crée
-    if (!map.getLayer(LAYER_ID)) {
-        map.addLayer({
-            id: LAYER_ID,
-            type: 'fill',
-            source: LAYER_ID,
-            'source-layer': config.sourceLayer,
-            paint: config.paint,
-            filter: ['in', ['get', config.idField], ['literal', selectedIds]]
-        });
-    } else {
-        // Sinon on met juste à jour le filtre
-        map.setFilter(LAYER_ID, ['in', ['get', config.idField], ['literal', selectedIds]]);
-    }
-
-    // Rendre la couche visible
-    map.setLayoutProperty(LAYER_ID, 'visibility', 'visible');
-
-    // Logs de debug
-    console.log(`Filtrage appliqué sur ${selectedIds.length} carreaux avec le champ ${config.idField}`);
-};
-
-// ----------------------------------------------------------------------------
-// 8) Au chargement de la page, on init la map
-// ----------------------------------------------------------------------------
-window.onload = initializeMap;
-
-
-  </script>
-</body>
-</html>
+// --------
