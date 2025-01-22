@@ -275,16 +275,26 @@ function addLayer(layerId, options={}) {
     }
 
   } else if (config.type === 'choropleth') {
-    // Ajouter le fill layer sous un id style layerId + '-choropleth'
-    const layerIdFull = layerId + '-choropleth';
-    if (!map.getLayer(layerIdFull)) {
-      const colorExpr = ['step', ['get', config.property]];
-      config.breaks.forEach((brk, i) => {
-        colorExpr.push(brk);
-        colorExpr.push(config.colors[i]);
-      });
-      // dernière couleur
-      colorExpr.push(config.colors[config.colors.length - 1]);
+  const layerIdFull = layerId + '-choropleth';
+  if (!map.getLayer(layerIdFull)) {
+    // Voici la partie critique : construire l'expression step
+    const colorExpr = [
+      "step",
+      ["get", config.property],
+      // 3ᵉ élément du tableau => la couleur “par défaut”
+      config.colors[0]  
+    ];
+    // Ensuite, pour chaque break, on ajoute (break, couleur)
+    config.breaks.forEach((brk, i) => {
+      colorExpr.push(brk);
+      // la couleur associée est colors[i+1]
+      colorExpr.push(config.colors[i + 1]);
+    });
+
+    // Au final, colorExpr ressemble à :
+    // ["step", ["get","nv_moyen"], "#fee5d9", 15000, "#fcae91", 20000, "#fb6a4a", ... , 35000, "#67000d"]
+
+
 
       map.addLayer({
         id: layerIdFull,
