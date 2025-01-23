@@ -115,9 +115,9 @@ const layerConfigs = {
         'case',
         ['boolean', ['feature-state', 'selected'], false],
         '#FF0000',
-        '#8E44AD'
+        '#2C3E50'
       ],
-      'fill-opacity': 0.5,
+      'fill-opacity': 0.8,
       'fill-outline-color': '#FFFFFF'
     },
     interactions: {
@@ -136,7 +136,7 @@ const layerConfigs = {
     }
   },
 
-  // Ex. couche CHOROPLETH "niveauVie"
+  // Couche CHOROPLETH "niveauVie"
   niveauVie: {
     type: 'choropleth',
     source: {
@@ -149,12 +149,13 @@ const layerConfigs = {
     breaks: [15000, 20000, 25000, 30000, 35000],
     colors: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'],
     // ex. label éventuelle sur la carte
+    opacity: 0.5,
     labels: {
       enabled: false
     }
   },
 
-  // Ex. autre CHOROPLETH "logementSocial"
+  // Couche CHOROPLETH "logementSocial"
   logementSocial: {
     type: 'choropleth',
     source: {
@@ -165,12 +166,13 @@ const layerConfigs = {
     property: 'part_log_soc',
     breaks: [5, 10, 15, 20, 25],
     colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+    opacity: 0.5,
     labels: {
       enabled: false
     }
   },
 
-    // Notes sur 20 des communes (insécurité)
+    // Couche CHOROPLETH Notes sur 20 des communes (insécurité)
   notesInsecurite: {
     type: 'choropleth',
     source: {
@@ -181,8 +183,14 @@ const layerConfigs = {
     property: 'note_sur_20',
     breaks: [5, 10, 15, 20, 25],
     colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+    opacity: 0.5,
     labels: {
-      enabled: false
+      enabled: true,
+      field: 'note_sur_20',
+      textSize: 12,
+      color: '#FFF',
+      haloColor: '#000',
+      haloWidth: 1
     }
   },
 
@@ -195,7 +203,7 @@ const layerConfigs = {
     },
     sourceLayer: 'grille200m_metropole',
     paint: {
-      'fill-color': '#FF0000',
+      'fill-color': '#99d98c',
       'fill-opacity': 0.5
     },
     idField: 'idINSPIRE'
@@ -310,8 +318,6 @@ function addLayer(layerId, options={}) {
     // Au final, colorExpr ressemble à :
     // ["step", ["get","nv_moyen"], "#fee5d9", 15000, "#fcae91", 20000, "#fb6a4a", ... , 35000, "#67000d"]
 
-
-
       map.addLayer({
         id: layerIdFull,
         type: 'fill',
@@ -319,7 +325,7 @@ function addLayer(layerId, options={}) {
         'source-layer': config.sourceLayer,
         paint: {
           'fill-color': colorExpr,
-          'fill-opacity': 0.7,
+          'fill-opacity': config.opacity ?? 0.7,
           'fill-outline-color': '#ffffff'
         }
       });
