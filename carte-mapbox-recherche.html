@@ -242,17 +242,22 @@ function hideAllLayers() {
   Object.keys(layerConfigs).forEach(layerId => {
     const config = layerConfigs[layerId];
     if (config.type === 'choropleth') {
-      // la vraie couche s'appelle layerId + '-choropleth'
+      // Masquer la couche choropleth
       if (map.getLayer(`${layerId}-choropleth`)) {
         map.setLayoutProperty(`${layerId}-choropleth`, 'visibility', 'none');
       }
+      // Masquer les labels pour les choropleths
+      if (config.labels?.enabled && map.getLayer(`${layerId}-labels`)) {
+        map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
+      }
     } else {
+      // Masquer les autres types de couches
       if (map.getLayer(layerId)) {
         map.setLayoutProperty(layerId, 'visibility', 'none');
       }
-      // idem pour labels
-      if (config.labels?.enabled && map.getLayer(layerId + '-labels')) {
-        map.setLayoutProperty(layerId + '-labels', 'visibility', 'none');
+      // Masquer les labels pour les autres couches
+      if (config.labels?.enabled && map.getLayer(`${layerId}-labels`)) {
+        map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
       }
     }
   });
