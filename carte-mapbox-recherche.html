@@ -203,8 +203,8 @@ const layerConfigs = {
     },
     sourceLayer: 'grille200m_metropole',
     paint: {
-      'fill-color': '#99d98c',
-      'fill-opacity': 0.5
+      'fill-color': '#8338ec',
+      'fill-opacity': 0.7
     },
     idField: 'idINSPIRE'
   }
@@ -257,6 +257,9 @@ function hideAllLayers() {
     }
   });
 }
+
+// Exposer à Bubble
+window.hideAllLayers = hideAllLayers;
 
 // -------------------------------------
 // 4) addLayer() en fonction du type
