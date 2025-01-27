@@ -222,19 +222,6 @@ function initializeMap() {
     style: 'mapbox://styles/mapbox/streets-v12',
     center: [2.361, 48.852],
     zoom: 9
-
-   // Configuration spécifique pour comprendre pourquoi la carte Mapbox ne se charge pas hors de mon compte
-     }).on('error', function(e) {
-    console.error('Mapbox error:', e);
-    // Afficher un message d'erreur visible
-    const mapDiv = document.getElementById('map');
-    mapDiv.innerHTML = '<div style="padding:20px;">Erreur de chargement de la carte</div>'; 
-  });
-
-     map.on('style.load', function() {
-    console.log('Style loaded successfully');
-  }).on('style.error', function(e) {
-    console.error('Style loading error:', e);
   });
 
   map.on('load', () => {
