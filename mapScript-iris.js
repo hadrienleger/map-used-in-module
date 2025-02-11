@@ -160,7 +160,7 @@ const layerConfigs = {
     paint: {
       'fill-color': '#8338ec',
       'fill-opacity': 0.7,
-      'fill-outline-color': '#FFFFFF'
+      'fill-outline-color': '#d62828'
     },
     idField: 'CODE_IRIS'
   }
