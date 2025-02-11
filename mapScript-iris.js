@@ -159,7 +159,8 @@ const layerConfigs = {
     sourceLayer: 'decoupages_iris_2022',
     paint: {
       'fill-color': '#8338ec',
-      'fill-opacity': 0.7
+      'fill-opacity': 0.7,
+      'fill-outline-color': '#FFFFFF'
     },
     idField: 'CODE_IRIS'
   }
