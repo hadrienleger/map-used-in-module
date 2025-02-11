@@ -149,19 +149,19 @@ const layerConfigs = {
     }
   },
 
-  // Couche FILTERABLE, ex. carreaux 200m
-  carresResult: {
+  // Couche FILTERABLE, ex. quartiers IRIS
+  iris: {
     type: 'filterable',
     source: {
       type: 'vector',
-      url: 'mapbox://hadrienleger.grille200m'
+      url: 'mapbox://hadrienleger.iris2022'
     },
-    sourceLayer: 'grille200m_metropole',
+    sourceLayer: 'decoupages_iris_2022',
     paint: {
       'fill-color': '#8338ec',
       'fill-opacity': 0.7
     },
-    idField: 'idINSPIRE'
+    idField: 'CODE_IRIS'
   }
 
 };
@@ -453,16 +453,16 @@ window.updateMapLayers = function(layerId, options = {}) {
   }
 };
 
-// Fonction pour appeler la couche de carrés
-window.filterCarreaux = function(selectedIds) {
-    const LAYER_ID = 'carresResult';
+// Fonction pour appeler la couche des IRIS
+window.filterIRIS = function(selectedIds) {
+    const LAYER_ID = 'iris';
     const config = layerConfigs[LAYER_ID];
 
   // On cache toutes les couches
   hideAllLayers();
 
     if (!config) {
-        console.error("Configuration non trouvée pour la couche carresResult");
+        console.error("Configuration non trouvée pour la couche iris");
         return;
     }
 
@@ -485,7 +485,7 @@ window.filterCarreaux = function(selectedIds) {
     map.setLayoutProperty(LAYER_ID, 'visibility', 'visible');
 
     // Logs de debug
-    console.log(`Filtrage appliqué sur ${selectedIds.length} carreaux avec le champ ${config.idField}`);
+    console.log(`Filtrage appliqué sur ${selectedIds.length} IRIS avec le champ ${config.idField}`);
 };
 
 // ----------------------------------------------------------------------------
