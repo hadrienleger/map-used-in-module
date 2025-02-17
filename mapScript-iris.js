@@ -396,34 +396,33 @@ window.updateMapLayers = function(layerId) {
 
 // Fonction pour appeler la couche des IRIS
 window.filterIRIS = function(selectedIds) {
-  const LAYER_ID = 'iris';
-  const config = layerConfigs[LAYER_ID];
-  if (!config) {
-    console.error("Configuration inexistante pour 'iris'");
-    return;
-  }
-
-  // 1) On masque tout
   hideAllLayers();
+  addLayer('iris'); // ou updateMapLayers('iris')
 
-  // 2) On appelle addLayer('iris') pour ajouter la couche + labels
-  addLayer(LAYER_ID);
-
-  // 3) On applique le filtre
-  map.setFilter(LAYER_ID, [
+  // Filtre le layer principal
+  map.setFilter('iris', [
     'in',
-    config.idField,
+    layerConfigs.iris.idField,
     ['literal', selectedIds]
   ]);
 
-  // 4) On rend la couche visible
-  map.setLayoutProperty(LAYER_ID, 'visibility', 'visible');
-  if (config.labels?.enabled && map.getLayer(LAYER_ID + '-labels')) {
-    map.setLayoutProperty(LAYER_ID + '-labels', 'visibility', 'visible');
+  // Filtre aussi les labels
+  if (layerConfigs.iris.labels?.enabled) {
+    map.setFilter('iris-labels', [
+      'in',
+      layerConfigs.iris.idField,
+      ['literal', selectedIds]
+    ]);
   }
 
-  console.log(`Filtrage IRIS sur ${selectedIds.length} codes. ID field = ${config.idField}`);
+  // Rendre visible
+  map.setLayoutProperty('iris','visibility','visible');
+  if (map.getLayer('iris-labels')) {
+    map.setLayoutProperty('iris-labels','visibility','visible');
+  }
+  console.log("Filtre IRIS appliqué sur", selectedIds.length, "éléments");
 };
+
 
 
 // ----------------------------------------------------------------------------
