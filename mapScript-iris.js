@@ -396,38 +396,17 @@ window.updateMapLayers = function(layerId) {
 
 // Fonction pour appeler la couche des IRIS
 window.filterIRIS = function(selectedIds) {
-    const LAYER_ID = 'iris';
-    const config = layerConfigs[LAYER_ID];
-
-  // On cache toutes les couches
   hideAllLayers();
+  updateMapLayers('iris'); // => ceci appelle addLayer('iris'), puis setLayoutProperty(...,'visible')
 
-    if (!config) {
-        console.error("Configuration non trouvée pour la couche iris");
-        return;
-    }
-
-    // Si la couche n'existe pas, on la crée
-    if (!map.getLayer(LAYER_ID)) {
-        map.addLayer({
-            id: LAYER_ID,
-            type: 'fill',
-            source: LAYER_ID,
-            'source-layer': config.sourceLayer,
-            paint: config.paint,
-            filter: ['in', ['get', config.idField], ['literal', selectedIds]]
-        });
-    } else {
-        // Sinon on met juste à jour le filtre
-        map.setFilter(LAYER_ID, ['in', ['get', config.idField], ['literal', selectedIds]]);
-    }
-
-    // Rendre la couche visible
-    map.setLayoutProperty(LAYER_ID, 'visibility', 'visible');
-
-    // Logs de debug
-    console.log(`Filtrage appliqué sur ${selectedIds.length} IRIS avec le champ ${config.idField}`);
+  // ensuite tu fais le setFilter
+  map.setFilter('iris', [
+    'in',
+    layerConfigs.iris.idField,
+    ['literal', selectedIds]
+  ]);
 };
+
 
 // ----------------------------------------------------------------------------
 // 8) Au chargement de la page, on init la map
