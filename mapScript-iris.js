@@ -273,7 +273,7 @@ function addLayer(layerId, options={}) {
     // couche déjà ajoutée (pour selectable/filterable)
     // on fait rien
   } else if (config.type === 'selectable' || config.type === 'filterable') {
-    // Ajouter un fill layer simple
+    // 1) Ajouter un fill layer simple
     map.addLayer({
       id: layerId,
       type: 'fill',
@@ -281,6 +281,29 @@ function addLayer(layerId, options={}) {
       'source-layer': config.sourceLayer,
       paint: config.paint
     });
+
+    // 2) Ajouter un layer de labels
+    + if (config.labels?.enabled) {
++   const labelLayerId = layerId + '-labels';
++   if (!map.getLayer(labelLayerId)) {
++     map.addLayer({
++       id: labelLayerId,
++       type: 'symbol',
++       source: layerId,
++       'source-layer': config.sourceLayer,
++       layout: {
++         'text-field': ['get', config.labels.field],
++         'text-size': config.labels.textSize || 12,
++         'text-anchor': 'center'
++       },
++       paint: {
++         'text-color': config.labels.color || '#000',
++         'text-halo-color': config.labels.haloColor || '#fff',
++         'text-halo-width': config.labels.haloWidth || 1
++       }
++     });
++   }
++ }
 
     // Gérer le clic IRIS
     if (config.interactions?.clickable) {
