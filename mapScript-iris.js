@@ -471,6 +471,8 @@ function handleFeatureClick(e, layerId) {
     );
     lastClickedFeatureId = feature.id; // on mémorise
 
+    console.log("IRIS cliqué, code =", irisCode);
+
     // 3) Envoyer l'info à Bubble : 
     //    par ex. on appelle bubble_fn_mapClicked si défini
     if (typeof bubble_fn_mapClicked === 'function') {
