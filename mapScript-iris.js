@@ -393,50 +393,61 @@ window.updateMapLayers = function(layerId) {
   }
 };
 
-bubble_fn_filterIRIS = function(params) {
-  console.log("Bubble appelle filterIRIS avec:", params);
-  window.filterIRIS(params);
-}
-
 // Fonction pour appeler la couche des IRIS
 // Modifions la fonction filterIRIS pour s'assurer que la carte est chargée
-window.filterIRIS = function(selectedIds) {
+window.filterIRIS = function(irisString) {
   if (!map || !map.loaded()) {
     console.error("La carte n'est pas encore chargée");
     return;
   }
 
+  // 1. Convertir la chaîne en tableau
+  let selectedIds;
+  if (typeof irisString === 'string') {
+    selectedIds = irisString.split(',').map(item => item.trim());
+  } else {
+    selectedIds = irisString;
+  }
+  
   console.log("Filtrage des IRIS avec IDs:", selectedIds);
 
   hideAllLayers();
-  
-  // Vérifions si la source et la couche existent
+
+  // 2. Vérifier et configurer les couches
   if (!map.getSource('iris')) {
     console.error("La source 'iris' n'existe pas");
     return;
   }
 
-  // Assurons-nous que la couche est ajoutée et visible
+  // 3. S'assurer que les deux couches sont ajoutées
   if (!map.getLayer('iris')) {
     addLayer('iris');
   }
-  
+
+  // 4. Rendre les couches visibles
   map.setLayoutProperty('iris', 'visibility', 'visible');
-  
-  // Appliquons le filtre avec plus de robustesse
+  if (map.getLayer('iris-labels')) {
+    map.setLayoutProperty('iris-labels', 'visibility', 'visible');
+  }
+
+  // 5. Appliquer le même filtre aux deux couches
   try {
-    const filter = ['match', ['get', layerConfigs.iris.idField], selectedIds, true, false];
-    console.log("Application du filtre:", JSON.stringify(filter));
+    const filter = ['match', ['get', 'CODE_IRIS'], selectedIds, true, false];
     
+    // Appliquer le filtre à la couche principale
     map.setFilter('iris', filter);
     
-    // Vérifions que le filtre a bien été appliqué
-    const features = map.querySourceFeatures('iris', {
-      sourceLayer: layerConfigs.iris.sourceLayer
-    });
-    console.log(`Nombre de features après filtrage: ${features.length}`);
+    // Appliquer le même filtre à la couche des labels
+    if (map.getLayer('iris-labels')) {
+      map.setFilter('iris-labels', filter);
+    }
 
-    // Ajustons la vue sur les IRIS filtrés
+    // 6. Ajuster la vue
+    const features = map.querySourceFeatures('iris', {
+      sourceLayer: layerConfigs.iris.sourceLayer,
+      filter: filter
+    });
+
     if (features.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();
       features.forEach(feature => {
