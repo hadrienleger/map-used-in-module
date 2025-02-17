@@ -168,6 +168,10 @@ const layerConfigs = {
       'fill-outline-color': '#FFFFFF'
     },
     idField: 'CODE_IRIS',
+        interactions: {
+      clickable: true,          // nouveau champ
+      bubbleFunction: 'iris'    // pour indiquer qu’on clique sur IRIS
+    },
     labels: {
       enabled: true,
       field: 'NOM_IRIS',
@@ -175,10 +179,6 @@ const layerConfigs = {
       color: '#FFF',
       haloColor: '#000',
       haloWidth: 1
-    },
-    interactions: {
-      clickable: true,          // nouveau champ
-      bubbleFunction: 'iris'    // pour indiquer qu’on clique sur IRIS
     }
   },
 
