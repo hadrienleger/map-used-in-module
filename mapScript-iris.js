@@ -38,9 +38,7 @@ const layerConfigs = {
       enabled: true,
       field: 'NOM_IRIS',
       textSize: 12,
-      color: '#FFF',
-      haloColor: '#000',
-      haloWidth: 1
+      color: '#FFF'
     }
   },
 
