@@ -314,7 +314,6 @@ function addLayer(layerId) {
   // -------------------------------------
   // 5 bis) clic sur les couches IRIS
   // -------------------------------------
-  let lastClickedFeatureId = null;   // pour désélectionner le polygone précédent, si besoin
 
   function handleIrisClick(e, layerId) {
     const config = layerConfigs[layerId];
