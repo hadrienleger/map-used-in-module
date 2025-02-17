@@ -38,7 +38,9 @@ const layerConfigs = {
       enabled: true,
       field: 'NOM_IRIS',
       textSize: 12,
-      color: '#FFF'
+      color: '#FFF',
+      haloColor: '#000',
+      haloWidth: 1
     }
   },
 
@@ -97,13 +99,11 @@ const layerConfigs = {
       enabled: true,
       field: 'note_sur_20',
       textSize: 12,
-      color: '#FFF',
-      haloColor: '#000',
-      haloWidth: 1
+      color: '#333',
+      haloColor: 'rgba(255,255,255,0.8)',
+      haloWidth: 2
     }
   }
-
-
 
 };
 
