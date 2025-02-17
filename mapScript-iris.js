@@ -11,7 +11,6 @@
  ****************************************************/
 
 let map;
-let selectedFeatures = [];  // pour stocker les ID sélectionnés dans les couches SELECTABLE
 let currentLayerId = null;
 
 // ---------------------------
@@ -19,159 +18,22 @@ let currentLayerId = null;
 // ---------------------------
 const layerConfigs = {
 
-  // Ex. couche SELECTABLE "communes"
-  communes: {
-    type: 'selectable',
-    source: {
-      type: 'vector',
-      url: 'mapbox://hadrienleger.cya562rc'
-    },
-    sourceLayer: 'simplifie-fusion-communes-et--439qo9',
-    paint: {
-      'fill-color': [
-        'case',
-        ['boolean', ['feature-state', 'selected'], false],
-        '#FF0000',
-        '#2C3E50'
-      ],
-      'fill-opacity': 0.8,
-      'fill-outline-color': '#FFFFFF'
-    },
-    interactions: {
-      selectable: true,
-      idField: 'INSEE_COM',
-      cursor: 'pointer',
-      bubbleFunction: 'com',
-      specialCases: {
-        ids: ['75056', '69123', '13055'], // codes communes globales de Paris, Lyon, Marseille
-        alternateField: 'INSEE_ARM'       // champ contenant l’arrondissement
-      }
-    },
-    labels: {
-      enabled: true,
-      field: 'NOM',
-      textSize: 12,
-      color: '#FFF',
-      haloColor: '#000',
-      haloWidth: 1
-    }
-  },
-
-  // Ex. couche SELECTABLE "departements"
-  departements: {
-    type: 'selectable',
-    source: {
-      type: 'vector',
-      url: 'mapbox://hadrienleger.7ys4ypx4'
-    },
-    sourceLayer: 'simplifie-DEPARTEMENT-asio6w',
-    paint: {
-      'fill-color': [
-        'case',
-        ['boolean', ['feature-state', 'selected'], false],
-        '#FF0000',
-        '#2C3E50'
-      ],
-      'fill-opacity': 0.8,
-      'fill-outline-color': '#FFFFFF'
-    },
-    interactions: {
-      selectable: true,
-      idField: 'INSEE_DEP',
-      cursor: 'pointer',
-      bubbleFunction: 'dep'
-    },
-    labels: {
-      enabled: true,
-      field: 'NOM',  // par ex. s'il y a un champ "NOM"
-      textSize: 11,
-      color: '#000',
-      haloColor: '#fff',
-      haloWidth: 1
-    }
-  },
-
-  // Couche CHOROPLETH "niveauVie"
-  niveauVie: {
-    type: 'choropleth',
-    source: {
-      type: 'vector',
-      url: 'mapbox://hadrienleger.filosofi2019'
-    },
-    sourceLayer: 'c200_filosofi_2019',
-    // config par défaut si pas surchargé
-    property: 'nv_moyen', 
-    breaks: [15000, 20000, 25000, 30000, 35000],
-    colors: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'],
-    // ex. label éventuelle sur la carte
-    opacity: 0.5,
-    labels: {
-      enabled: false
-    }
-  },
-
-  // Couche CHOROPLETH "logementSocial"
-  logementSocial: {
-    type: 'choropleth',
-    source: {
-      type: 'vector',
-      url: 'mapbox://hadrienleger.filosofi2019'
-    },
-    sourceLayer: 'c200_filosofi_2019',
-    property: 'part_log_soc',
-    breaks: [5, 10, 15, 20, 25],
-    colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
-    opacity: 0.5,
-    labels: {
-      enabled: false
-    }
-  },
-
-    // Couche CHOROPLETH Notes sur 20 des communes (insécurité)
-  notesInsecurite: {
-    type: 'choropleth',
-    source: {
-      type: 'vector',
-      url: 'mapbox://hadrienleger.7ypxua5r'
-    },
-    sourceLayer: 'communes_securite-2449ue',
-    property: 'note_sur_20',
-    breaks: [5, 10, 15, 20, 25],
-    colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
-    opacity: 0.5,
-    labels: {
-      enabled: true,
-      field: 'note_sur_20',
-      textSize: 12,
-      color: '#FFF',
-      haloColor: '#000',
-      haloWidth: 1
-    }
-  },
-
-  // Couche FILTERABLE, ex. quartiers IRIS
+  // Couche des quartiers IRIS
   iris: {
-    type: 'filterable',
     source: {
       type: 'vector',
       url: 'mapbox://hadrienleger.iris2022'
     },
     sourceLayer: 'decoupages_iris_2022',
-    paint: {
-      'fill-color': [
-        'case',
-        ['boolean', ['feature-state', 'clicked'], false],
-        '#FF0000', // si "clicked", on met du rouge
-        '#8338ec'  // sinon la couleur de base
-      ],
+    basePaint: {
+      'fill-color': '#8338ec',
       'fill-opacity': 0.7,
       'fill-outline-color': '#FFFFFF'
     },
     idField: 'CODE_IRIS',
-    interactions: {
-      clickable: true,          // nouveau champ
-      bubbleFunction: 'iris'    // pour indiquer qu’on clique sur IRIS
-    },
+    clickable: true,
+    useFeatureStateClicked: true,
+    isChoropleth: false,
     labels: {
       enabled: true,
       field: 'NOM_IRIS',
@@ -181,6 +43,69 @@ const layerConfigs = {
       haloWidth: 1
     }
   }
+
+  // Couche CHOROPLETH "niveauVie"
+  niveauVie: {
+    source: {
+      type: 'vector',
+      url: 'mapbox://hadrienleger.filosofi2019'
+    },
+    sourceLayer: 'c200_filosofi_2019',
+    isChoropleth: true,
+    // config par défaut si pas surchargé
+    property: 'nv_moyen', 
+    breaks: [15000, 20000, 25000, 30000, 35000],
+    colors: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'],
+    // ex. label éventuelle sur la carte
+    opacity: 0.5,
+    clickable: false,
+    labels: {
+      enabled: false
+    }
+  },
+
+  // Couche CHOROPLETH "logementSocial"
+  logementSocial: {
+    source: {
+      type: 'vector',
+      url: 'mapbox://hadrienleger.filosofi2019'
+    },
+    sourceLayer: 'c200_filosofi_2019',
+    isChoropleth: true,
+    property: 'part_log_soc',
+    breaks: [5, 10, 15, 20, 25],
+    colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+    opacity: 0.5,
+    clickable: false,
+    labels: {
+      enabled: false
+    }
+  },
+
+    // Couche CHOROPLETH Notes sur 20 des communes (insécurité)
+  notesInsecurite: {
+    source: {
+      type: 'vector',
+      url: 'mapbox://hadrienleger.7ypxua5r'
+    },
+    sourceLayer: 'communes_securite-2449ue',
+    isChoropleth: true,
+    property: 'note_sur_20',
+    breaks: [5, 10, 15, 20, 25],
+    colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+    opacity: 0.5,
+    clickable: false,
+    labels: {
+      enabled: true,
+      field: 'note_sur_20',
+      textSize: 12,
+      color: '#FFF',
+      haloColor: '#000',
+      haloWidth: 1
+    }
+  }
+
+
 
 };
 
@@ -258,188 +183,133 @@ window.hideAllLayers = hideAllLayers;
 // -------------------------------------
 // 4) addLayer() en fonction du type
 // -------------------------------------
-function addLayer(layerId, options={}) {
+function addLayer(layerId) {
   const config = layerConfigs[layerId];
   if (!config) return;
 
-  // Surcharger la config choropleth si options contient property / breaks / colors
-  if (config.type === 'choropleth') {
-    if (options.property) config.property = options.property;
-    if (options.breaks) config.breaks = options.breaks;
-    if (options.colors) config.colors = options.colors;
+  // (A) Source déjà ajoutée au load, on ne touche pas
+  // On vérifie si le layer existe déjà
+  if (map.getLayer(layerId)) {
+    return; // déjà existant
   }
 
-  if (map.getLayer(layerId)) {
-    // couche déjà ajoutée (pour selectable/filterable)
-    // on fait rien
-  } else if (config.type === 'selectable' || config.type === 'filterable') {
-    // 1) Ajouter un fill layer simple
-    map.addLayer({
-      id: layerId,
-      type: 'fill',
-      source: layerId,
-      'source-layer': config.sourceLayer,
-      paint: config.paint
-    });
-
-    // 2) Ajouter un layer de labels
-       if (config.labels?.enabled) {
-     const labelLayerId = layerId + '-labels';
-     if (!map.getLayer(labelLayerId)) {
-       map.addLayer({
-         id: labelLayerId,
-         type: 'symbol',
-         source: layerId,
-         'source-layer': config.sourceLayer,
-         layout: {
-           'text-field': ['get', config.labels.field],
-           'text-size': config.labels.textSize || 12,
-           'text-anchor': 'center'
-         },
-         paint: {
-           'text-color': config.labels.color || '#000',
-           'text-halo-color': config.labels.haloColor || '#fff',
-           'text-halo-width': config.labels.haloWidth || 1
-         }
-       });
-     }
-   }
-
-    // Gérer le clic IRIS
-    if (config.interactions?.clickable) {
-       map.on('click', layerId, e => handleIrisClick(e, layerId));
-       // curseur en pointeur
-       map.on('mouseenter', layerId, () => {
-         map.getCanvas().style.cursor = 'pointer';
-       });
-       map.on('mouseleave', layerId, () => {
-         map.getCanvas().style.cursor = '';
-       });
-     }
-    
-    // Pour SELECTABLE, on gère l'interactivité
-    if (config.type === 'selectable' && config.interactions?.selectable) {
-      map.on('click', layerId, e => handleFeatureClick(e, layerId));
-      if (config.interactions.cursor) {
-        map.on('mouseenter', layerId, () => {
-          map.getCanvas().style.cursor = config.interactions.cursor;
-        });
-        map.on('mouseleave', layerId, () => {
-          map.getCanvas().style.cursor = '';
-        });
-      }
-    }
-
-  } else if (config.type === 'choropleth') {
-  const layerIdFull = layerId + '-choropleth';
-  if (!map.getLayer(layerIdFull)) {
-    // Voici la partie critique : construire l'expression step
+  // (B) Construire paint object
+  let paintObj;
+  if (config.isChoropleth) {
+    // Construire l'expression step sur config.property, config.breaks, config.colors
     const colorExpr = [
       "step",
       ["get", config.property],
-      // 3ᵉ élément du tableau => la couleur “par défaut”
-      config.colors[0]  
+      config.colors[0]
     ];
-    // Ensuite, pour chaque break, on ajoute (break, couleur)
-    config.breaks.forEach((brk, i) => {
+    config.breaks.forEach((brk,i) => {
       colorExpr.push(brk);
-      // la couleur associée est colors[i+1]
-      colorExpr.push(config.colors[i + 1]);
+      colorExpr.push(config.colors[i+1]);
     });
 
-    // Au final, colorExpr ressemble à :
-    // ["step", ["get","nv_moyen"], "#fee5d9", 15000, "#fcae91", 20000, "#fb6a4a", ... , 35000, "#67000d"]
-
-      map.addLayer({
-        id: layerIdFull,
-        type: 'fill',
-        source: layerId,
-        'source-layer': config.sourceLayer,
-        paint: {
-          'fill-color': colorExpr,
-          'fill-opacity': config.opacity ?? 0.7,
-          'fill-outline-color': '#ffffff'
-        }
-      });
-    }
-  }
-
-  // Ajouter labels si config.labels.enabled
-  if (config.labels?.enabled) {
-    const labelLayerId = layerId + '-labels';
-    if (!map.getLayer(labelLayerId)) {
-      map.addLayer({
-        id: labelLayerId,
-        type: 'symbol',
-        source: layerId,
-        'source-layer': config.sourceLayer,
-        layout: {
-          'text-field': ['get', config.labels.field],
-          'text-size': config.labels.textSize || 12,
-          'text-anchor': 'center'
-        },
-        paint: {
-          'text-color': config.labels.color || '#000',
-          'text-halo-color': config.labels.haloColor || '#fff',
-          'text-halo-width': config.labels.haloWidth || 1
-        }
-      });
-    }
-  }
-}
-
-// -------------------------------------
-// 5) handleFeatureClick : SELECTABLE
-// -------------------------------------
-function handleFeatureClick(e, layerId) {
-  const config = layerConfigs[layerId];
-  const feature = e.features[0];
-  if (!feature) return;
-
-  // 1) Récupérer l'ID principal
-  let idVal = feature.properties[config.interactions.idField];
-
-  // 2) Gérer les cas Paris, Lyon, Marseille
-  //    si config.interactions.specialCases existe
-  if (config.interactions.specialCases) {
-    const sc = config.interactions.specialCases;  // ex. { ids: ['75056','69123','13055'], alternateField: 'INSEE_ARM' }
-
-    // On check si 'idVal' figure dans sc.ids
-    if (sc.ids.includes(idVal)) {
-      // On remplace par la valeur du champ alternateField, ex. 'INSEE_ARM'
-      const altValue = feature.properties[sc.alternateField];
-      if (altValue) {
-        idVal = altValue;
-      }
-    }
-  }
-
-  // 3) Toggle la sélection
-  const idx = selectedFeatures.indexOf(idVal);
-  if (idx > -1) {
-    // Déjà sélectionné => on retire
-    selectedFeatures.splice(idx, 1);
-    map.setFeatureState(
-      { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
-      { selected: false }
-    );
+    paintObj = {
+      'fill-color': colorExpr,
+      'fill-opacity': config.opacity ?? 0.7,
+      'fill-outline-color': '#ffffff'
+    };
   } else {
-    // Pas encore sélectionné => on ajoute
-    selectedFeatures.push(idVal);
-    map.setFeatureState(
-      { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
-      { selected: true }
-    );
+    // fill simple
+    if (config.basePaint) {
+      paintObj = { ...config.basePaint };
+    } else {
+      // default
+      paintObj = {
+        'fill-color': '#2C3E50',
+        'fill-opacity': 0.8,
+        'fill-outline-color': '#FFF'
+      };
+    }
+    if (config.useFeatureStateClicked) {
+      // On veut colorer en rouge si clicked
+      paintObj['fill-color'] = [
+        'case',
+        ['boolean',['feature-state','clicked'],false],
+        '#FF0000',
+        paintObj['fill-color']
+      ];
+    }
   }
 
-  // 4) Envoyer la liste mise à jour à Bubble
-  if (typeof bubble_fn_selectedFeatures === 'function') {
-    bubble_fn_selectedFeatures({
-      output1: config.interactions.bubbleFunction,
-      outputlist1: selectedFeatures
+  // (C) Ajouter le fill layer
+  map.addLayer({
+    id: layerId,
+    type: 'fill',
+    source: layerId,
+    'source-layer': config.sourceLayer,
+    paint: paintObj
+  });
+
+  // (D) Ajouter un layer symbol pour les labels si enabled
+  if (config.labels?.enabled) {
+    const labelLayerId = `${layerId}-labels`;
+    map.addLayer({
+      id: labelLayerId,
+      type: 'symbol',
+      source: layerId,
+      'source-layer': config.sourceLayer,
+      layout: {
+        'text-field': ['get', config.labels.field],
+        'text-size': config.labels.textSize || 12,
+        'text-anchor': 'center'
+      },
+      paint: {
+        'text-color': config.labels.color || '#000',
+        'text-halo-color': config.labels.haloColor || '#fff',
+        'text-halo-width': config.labels.haloWidth || 1
+      }
     });
   }
+
+  // (E) Rendre le layer cliquable ?
+  if (config.clickable) {
+    map.on('click', layerId, e => handleLayerClick(e, layerId));
+    map.on('mouseenter', layerId, () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', layerId, () => map.getCanvas().style.cursor = '');
+  }
 }
+
+
+// -------------------------------------
+// 5) handleLayerClick
+// -------------------------------------
+  let lastClickedFeatureId = null;
+
+  function handleLayerClick(e, layerId) {
+    const config = layerConfigs[layerId];
+    if (!config) return;
+    const feature = e.features[0];
+    if (!feature) return;
+
+    // l'ID = codeVal
+    const codeVal = config.idField ? feature.properties[config.idField] : null;
+
+    // si on veut un unique polygone "clicked"
+    if (lastClickedFeatureId) {
+      map.setFeatureState(
+        { source: layerId, sourceLayer: config.sourceLayer, id: lastClickedFeatureId },
+        { clicked: false }
+      );
+    }
+    map.setFeatureState(
+      { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
+      { clicked: true }
+    );
+    lastClickedFeatureId = feature.id;
+
+    // envoyons à Bubble
+    if (typeof bubble_fn_mapClicked === 'function') {
+      bubble_fn_mapClicked({
+        output1: layerId,
+        output2: codeVal
+      });
+    }
+  }
+
 
   // -------------------------------------
   // 5 bis) clic sur les couches IRIS
@@ -510,42 +380,20 @@ function setFilterableIDs(layerId, listOfIDs) {
 // 7) Fonctions publiques pour Bubble
 // ----------------------------------------------------------------------------
 
-/**
- * Permet d'afficher la couche "layerId" 
- * (selectable, choropleth, filterable)
- * et de surcharger éventuellement la config 
- * (ex: property, breaks, colors pour choropleth).
- */
-window.updateMapLayers = function(layerId, options = {}) {
-  // 1) on cache toutes les couches
+// Mettre à jour le layer
+window.updateMapLayers = function(layerId) {
   hideAllLayers();
-
-  // 2) on reset la sélection
-  selectedFeatures = [];
-  currentLayerId = layerId;
-
-  // 3) on ajoute la couche (et ses labels, éventuellement)
-  addLayer(layerId, options);
-
-  // 4) on la rend visible
+  addLayer(layerId);  
+  // rendant visible
+  if (map.getLayer(layerId)) {
+    map.setLayoutProperty(layerId, 'visibility','visible');
+  }
   const config = layerConfigs[layerId];
-  if (config.type === 'choropleth') {
-    const layerIdFull = layerId + '-choropleth';
-    if (map.getLayer(layerIdFull)) {
-      map.setLayoutProperty(layerIdFull, 'visibility', 'visible');
-    }
-    if (config.labels?.enabled && map.getLayer(layerId + '-labels')) {
-      map.setLayoutProperty(layerId + '-labels', 'visibility', 'visible');
-    }
-  } else {
-    if (map.getLayer(layerId)) {
-      map.setLayoutProperty(layerId, 'visibility', 'visible');
-    }
-    if (config.labels?.enabled && map.getLayer(layerId + '-labels')) {
-      map.setLayoutProperty(layerId + '-labels', 'visibility', 'visible');
-    }
+  if (config?.labels?.enabled && map.getLayer(layerId+'-labels')) {
+    map.setLayoutProperty(layerId+'-labels','visibility','visible');
   }
 };
+
 
 // Fonction pour appeler la couche des IRIS
 window.filterIRIS = function(selectedIds) {
