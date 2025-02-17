@@ -381,7 +381,7 @@ function setFilterableIDs(layerId, listOfIDs) {
 
 // Mettre à jour le layer
 window.updateMapLayers = function(layerId) {
-  hideAllLayers();
+
   addLayer(layerId);  
   // rendant visible
   if (map.getLayer(layerId)) {
@@ -396,130 +396,15 @@ window.updateMapLayers = function(layerId) {
 
 // Fonction pour appeler la couche des IRIS
 window.filterIRIS = function(selectedIds) {
-  const LAYER_ID = 'iris';
-  const config = layerConfigs[LAYER_ID];
-  
-  // 1) On masque toutes les couches
   hideAllLayers();
+  updateMapLayers('iris'); // => ceci appelle addLayer('iris'), puis setLayoutProperty(...,'visible')
 
-  if (!config) {
-    console.error("Configuration non trouvée pour la couche 'iris'");
-    return;
-  }
-
-  // 2) Vérif si le layer principal n’existe pas encore
-  if (!map.getLayer(LAYER_ID)) {
-    // => On va le créer (fill + label)
-
-    // a) Construire le paintObj
-    let paintObj;
-    if (config.isChoropleth) {
-      // => logic step
-      const colorExpr = [
-        "step",
-        ["get", config.property],
-        config.colors[0]
-      ];
-      config.breaks.forEach((brk,i) => {
-        colorExpr.push(brk);
-        colorExpr.push(config.colors[i+1]);
-      });
-      paintObj = {
-        'fill-color': colorExpr,
-        'fill-opacity': config.opacity ?? 0.7,
-        'fill-outline-color': '#ffffff'
-      };
-    } else {
-      // fill simple (basePaint)
-      paintObj = config.basePaint ? { ...config.basePaint } : {
-        'fill-color': '#2C3E50',
-        'fill-opacity': 0.8,
-        'fill-outline-color': '#FFF'
-      };
-      // gestion "clicked" si tu veux colorer en rouge
-      if (config.useFeatureStateClicked) {
-        paintObj['fill-color'] = [
-          'case',
-          ['boolean',['feature-state','clicked'],false],
-          '#FF0000',
-          paintObj['fill-color']
-        ];
-      }
-    }
-
-    // b) Ajouter le layer fill
-    map.addLayer({
-      id: LAYER_ID,
-      type: 'fill',
-      source: LAYER_ID,
-      'source-layer': config.sourceLayer,
-      paint: paintObj,
-      filter: [
-        'in',
-        config.idField,
-        ['literal', selectedIds]
-      ]
-    });
-    
-    // c) Ajouter le layer de labels si config.labels.enabled
-    if (config.labels?.enabled) {
-      const labelLayerId = LAYER_ID + '-labels';
-      map.addLayer({
-        id: labelLayerId,
-        type: 'symbol',
-        source: LAYER_ID,
-        'source-layer': config.sourceLayer,
-        layout: {
-          'text-field': ['get', config.labels.field],
-          'text-size': config.labels.textSize || 12,
-          'text-anchor': 'center'
-        },
-        paint: {
-          'text-color': config.labels.color || '#000',
-          'text-halo-color': config.labels.haloColor || '#fff',
-          'text-halo-width': config.labels.haloWidth || 1
-        },
-        filter: [
-          'in',
-          config.idField,
-          ['literal', selectedIds]
-        ]
-      });
-    }
-
-    // d) Rendre le layer cliquable si config.clickable
-    if (config.clickable) {
-      map.on('click', LAYER_ID, e => handleLayerClick(e, LAYER_ID));
-      map.on('mouseenter', LAYER_ID, () => map.getCanvas().style.cursor = 'pointer');
-      map.on('mouseleave', LAYER_ID, () => map.getCanvas().style.cursor = '');
-    }
-
-  } else {
-    // => Le layer existait déjà => on met juste à jour son filtre
-    map.setFilter(LAYER_ID, [
-      'in',
-      config.idField,
-      ['literal', selectedIds]
-    ]);
-    // Et aussi le filter du layer labels
-    const labelLayerId = LAYER_ID + '-labels';
-    if (config.labels?.enabled && map.getLayer(labelLayerId)) {
-      map.setFilter(labelLayerId, [
-        'in',
-        config.idField,
-        ['literal', selectedIds]
-      ]);
-    }
-  }
-
-  // 3) Rendre la couche visible
-  map.setLayoutProperty(LAYER_ID, 'visibility', 'visible');
-  const labelLayerId = LAYER_ID + '-labels';
-  if (config.labels?.enabled && map.getLayer(labelLayerId)) {
-    map.setLayoutProperty(labelLayerId, 'visibility', 'visible');
-  }
-
-  console.log(`Filtrage IRIS appliqué sur ${selectedIds.length} polygones (champ ${config.idField})`);
+  // ensuite tu fais le setFilter
+  map.setFilter('iris', [
+    'in',
+    layerConfigs.iris.idField,
+    ['literal', selectedIds]
+  ]);
 };
 
 
