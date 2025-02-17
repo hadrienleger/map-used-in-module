@@ -283,27 +283,27 @@ function addLayer(layerId, options={}) {
     });
 
     // 2) Ajouter un layer de labels
-    + if (config.labels?.enabled) {
-+   const labelLayerId = layerId + '-labels';
-+   if (!map.getLayer(labelLayerId)) {
-+     map.addLayer({
-+       id: labelLayerId,
-+       type: 'symbol',
-+       source: layerId,
-+       'source-layer': config.sourceLayer,
-+       layout: {
-+         'text-field': ['get', config.labels.field],
-+         'text-size': config.labels.textSize || 12,
-+         'text-anchor': 'center'
-+       },
-+       paint: {
-+         'text-color': config.labels.color || '#000',
-+         'text-halo-color': config.labels.haloColor || '#fff',
-+         'text-halo-width': config.labels.haloWidth || 1
-+       }
-+     });
-+   }
-+ }
+       if (config.labels?.enabled) {
+     const labelLayerId = layerId + '-labels';
+     if (!map.getLayer(labelLayerId)) {
+       map.addLayer({
+         id: labelLayerId,
+         type: 'symbol',
+         source: layerId,
+         'source-layer': config.sourceLayer,
+         layout: {
+           'text-field': ['get', config.labels.field],
+           'text-size': config.labels.textSize || 12,
+           'text-anchor': 'center'
+         },
+         paint: {
+           'text-color': config.labels.color || '#000',
+           'text-halo-color': config.labels.haloColor || '#fff',
+           'text-halo-width': config.labels.haloWidth || 1
+         }
+       });
+     }
+   }
 
     // Gérer le clic IRIS
     if (config.interactions?.clickable) {
