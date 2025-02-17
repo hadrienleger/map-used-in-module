@@ -175,7 +175,7 @@ const layerConfigs = {
       color: '#FFF',
       haloColor: '#000',
       haloWidth: 1
-    }
+    },
     interactions: {
       clickable: true,          // nouveau champ
       bubbleFunction: 'iris'    // pour indiquer qu’on clique sur IRIS
