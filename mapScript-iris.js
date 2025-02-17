@@ -42,7 +42,7 @@ const layerConfigs = {
       haloColor: '#000',
       haloWidth: 1
     }
-  }
+  },
 
   // Couche CHOROPLETH "niveauVie"
   niveauVie: {
