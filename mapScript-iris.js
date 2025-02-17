@@ -208,7 +208,7 @@ function initializeMap() {
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v12',
     center: [2.361, 48.852],
-    zoom: 9
+    zoom: 10
   });
 
   map.on('load', () => {
