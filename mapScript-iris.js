@@ -158,12 +158,29 @@ const layerConfigs = {
     },
     sourceLayer: 'decoupages_iris_2022',
     paint: {
-      'fill-color': '#8338ec',
+      'fill-color': [
+        'case',
+        ['boolean', ['feature-state', 'clicked'], false],
+        '#FF0000', // si "clicked", on met du rouge
+        '#8338ec'  // sinon la couleur de base
+      ],
       'fill-opacity': 0.7,
       'fill-outline-color': '#FFFFFF'
     },
-    idField: 'CODE_IRIS'
-  }
+    idField: 'CODE_IRIS',
+    labels: {
+      enabled: true,
+      field: 'NOM_IRIS',
+      textSize: 12,
+      color: '#FFF',
+      haloColor: '#000',
+      haloWidth: 1
+    }
+    interactions: {
+      clickable: true,          // nouveau champ
+      bubbleFunction: 'iris'    // pour indiquer qu’on clique sur IRIS
+    }
+  },
 
 };
 
@@ -264,6 +281,18 @@ function addLayer(layerId, options={}) {
       'source-layer': config.sourceLayer,
       paint: config.paint
     });
+
+    // Gérer le clic IRIS
+    if (config.interactions?.clickable) {
+       map.on('click', layerId, e => handleIrisClick(e, layerId));
+       // curseur en pointeur
+       map.on('mouseenter', layerId, () => {
+         map.getCanvas().style.cursor = 'pointer';
+       });
+       map.on('mouseleave', layerId, () => {
+         map.getCanvas().style.cursor = '';
+       });
+     }
     
     // Pour SELECTABLE, on gère l'interactivité
     if (config.type === 'selectable' && config.interactions?.selectable) {
@@ -389,6 +418,45 @@ function handleFeatureClick(e, layerId) {
   }
 }
 
+  // -------------------------------------
+  // 5 bis) clic sur les couches IRIS
+  // -------------------------------------
+  let lastClickedFeatureId = null;   // pour désélectionner le polygone précédent, si besoin
+
+  function handleIrisClick(e, layerId) {
+    const config = layerConfigs[layerId];
+    if (!config) return;
+
+    const feature = e.features[0];
+    if (!feature) return;
+
+    // Récupérer l'ID IRIS
+    const irisCode = feature.properties[config.idField];
+
+    // 1) Désélectionner l'ancien polygone, si lastClickedFeatureId existe
+    if (lastClickedFeatureId) {
+      map.setFeatureState(
+        { source: layerId, sourceLayer: config.sourceLayer, id: lastClickedFeatureId },
+        { clicked: false }
+      );
+    }
+
+    // 2) Sélectionner le nouveau
+    map.setFeatureState(
+      { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
+      { clicked: true }
+    );
+    lastClickedFeatureId = feature.id; // on mémorise
+
+    // 3) Envoyer l'info à Bubble : 
+    //    par ex. on appelle bubble_fn_mapClicked si défini
+    if (typeof bubble_fn_mapClicked === 'function') {
+      bubble_fn_mapClicked({
+        output1: 'iris',
+        output2: irisCode
+      });
+    }
+  }
 
 // -------------------------------------
 // 6) Filtrage pour "filterable" type
