@@ -393,18 +393,68 @@ window.updateMapLayers = function(layerId) {
   }
 };
 
+bubble_fn_filterIRIS = function(params) {
+  console.log("Bubble appelle filterIRIS avec:", params);
+  window.filterIRIS(params);
+}
 
 // Fonction pour appeler la couche des IRIS
+// Modifions la fonction filterIRIS pour s'assurer que la carte est chargée
 window.filterIRIS = function(selectedIds) {
-  hideAllLayers();
-  updateMapLayers('iris'); // => ceci appelle addLayer('iris'), puis setLayoutProperty(...,'visible')
+  if (!map || !map.loaded()) {
+    console.error("La carte n'est pas encore chargée");
+    return;
+  }
 
-  // ensuite tu fais le setFilter
-  map.setFilter('iris', [
-    'in',
-    layerConfigs.iris.idField,
-    ['literal', selectedIds]
-  ]);
+  console.log("Filtrage des IRIS avec IDs:", selectedIds);
+
+  hideAllLayers();
+  
+  // Vérifions si la source et la couche existent
+  if (!map.getSource('iris')) {
+    console.error("La source 'iris' n'existe pas");
+    return;
+  }
+
+  // Assurons-nous que la couche est ajoutée et visible
+  if (!map.getLayer('iris')) {
+    addLayer('iris');
+  }
+  
+  map.setLayoutProperty('iris', 'visibility', 'visible');
+  
+  // Appliquons le filtre avec plus de robustesse
+  try {
+    const filter = ['match', ['get', layerConfigs.iris.idField], selectedIds, true, false];
+    console.log("Application du filtre:", JSON.stringify(filter));
+    
+    map.setFilter('iris', filter);
+    
+    // Vérifions que le filtre a bien été appliqué
+    const features = map.querySourceFeatures('iris', {
+      sourceLayer: layerConfigs.iris.sourceLayer
+    });
+    console.log(`Nombre de features après filtrage: ${features.length}`);
+
+    // Ajustons la vue sur les IRIS filtrés
+    if (features.length > 0) {
+      const bounds = new mapboxgl.LngLatBounds();
+      features.forEach(feature => {
+        if (feature.geometry) {
+          if (feature.geometry.type === 'Polygon') {
+            feature.geometry.coordinates[0].forEach(coord => bounds.extend(coord));
+          } else if (feature.geometry.type === 'MultiPolygon') {
+            feature.geometry.coordinates.forEach(polygon => {
+              polygon[0].forEach(coord => bounds.extend(coord));
+            });
+          }
+        }
+      });
+      map.fitBounds(bounds, { padding: 50 });
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'application du filtre:", error);
+  }
 };
 
 
