@@ -22,9 +22,9 @@ const layerConfigs = {
   iris: {
     source: {
       type: 'vector',
-      url: 'mapbox://hadrienleger.iris2022'
+      url: 'mapbox://hadrienleger.as1qqsaw'
     },
-    sourceLayer: 'decoupages_iris_2022',
+    sourceLayer: 'IRIS_FRANCE_COMPLETE_WGS84_21-9k6z9i',
     basePaint: {
       'fill-color': '#8338ec',
       'fill-opacity': 0.7,
