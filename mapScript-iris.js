@@ -23,9 +23,9 @@ const layerConfigs = {
   iris: {
       source: {
         type: 'vector',
-        url: 'mapbox://hadrienleger.79g5r5gt'
+        url: 'mapbox://hadrienleger.ak5sb828'
       },
-      sourceLayer: 'iris-ign-simple-8us3r7',
+      sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
       basePaint: {
         'fill-color': [
           'case',
