@@ -281,6 +281,8 @@ function addLayer(layerId) {
     const config = layerConfigs[layerId];
     if (!config) return;
     const feature = e.features[0];
+    console.log("Geometry type:", feature.geometry.type); // Affichera 'Polygon' ou 'MultiPolygon'
+    console.log("Full feature:", feature); // Pour voir la structure complète
     if (!feature) return;
 
     // l'ID = codeVal
