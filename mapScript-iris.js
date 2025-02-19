@@ -19,29 +19,37 @@ let currentLayerId = null;
 const layerConfigs = {
 
   // Couche des quartiers IRIS
+// Dans layerConfigs
   iris: {
-    source: {
-      type: 'vector',
-      url: 'mapbox://hadrienleger.79g5r5gt'
-    },
-    sourceLayer: 'iris-ign-simple-8us3r7',
-    basePaint: {
-      'fill-color': '#8338ec',
-      'fill-opacity': 0.7,
-      'fill-outline-color': '#FFFFFF'
-    },
-    idField: 'CODE_IRIS',
-    clickable: true,
-    useFeatureStateClicked: true,
-    isChoropleth: false,
-    labels: {
-      enabled: true,
-      field: 'NOM_IRIS',
-      textSize: 12,
-      color: '#FFF',
-      haloColor: '#000',
-      haloWidth: 1
-    }
+      source: {
+        type: 'vector',
+        url: 'mapbox://hadrienleger.79g5r5gt'
+      },
+      sourceLayer: 'iris-ign-simple-8us3r7',
+      basePaint: {
+        'fill-color': [
+          'case',
+          ['boolean', ['feature-state', 'clicked'], false],
+          '#FF0000',
+          '#8338ec'
+        ],
+        'fill-opacity': 0.7,
+        'fill-outline-color': '#FFFFFF'
+      },
+      idField: 'CODE_IRIS',
+      clickable: true,
+      useFeatureStateClicked: true,
+      isChoropleth: false,
+      labels: {
+        enabled: true,
+        field: 'NOM_IRIS',
+        textSize: 12,
+        color: '#FFF',
+        haloColor: '#000',
+        haloWidth: 1
+      },
+      minzoom: 8,
+      maxzoom: 22
   },
 
   // Couche CHOROPLETH "niveauVie"
@@ -239,6 +247,8 @@ function addLayer(layerId) {
     type: 'fill',
     source: layerId,
     'source-layer': config.sourceLayer,
+    minzoom: config.minzoom,    // Ajouter cette ligne
+    maxzoom: config.maxzoom,    // Ajouter cette ligne
     paint: paintObj
   });
 
@@ -277,80 +287,68 @@ function addLayer(layerId) {
 // -------------------------------------
   let lastClickedFeatureId = null;
 
-  function handleLayerClick(e, layerId) {
+// Modifions le handleLayerClick pour gérer les multi-polygones
+function handleLayerClick(e, layerId) {
     const config = layerConfigs[layerId];
     if (!config) return;
+    
     const feature = e.features[0];
-    console.log("Geometry type:", feature.geometry.type); // Affichera 'Polygon' ou 'MultiPolygon'
-    console.log("Full feature:", feature); // Pour voir la structure complète
     if (!feature) return;
 
-    // l'ID = codeVal
-    const codeVal = config.idField ? feature.properties[config.idField] : null;
+    // Logs pour déboguer
+    console.log("Clic sur feature:", {
+        id: feature.id,
+        type: feature.geometry.type,
+        properties: feature.properties
+    });
 
-    // si on veut un unique polygone "clicked"
+    const codeIris = feature.properties[config.idField];
+    
+    // Récupérer tous les features qui composent cet IRIS
+    const allIrisFeatures = map.queryRenderedFeatures({ 
+        layers: [layerId],
+        filter: ['==', ['get', config.idField], codeIris]
+    });
+    
+    console.log(`Nombre de parties pour cet IRIS: ${allIrisFeatures.length}`);
+
+    // Désélectionner l'ancien si existe
     if (lastClickedFeatureId) {
-      map.setFeatureState(
-        { source: layerId, sourceLayer: config.sourceLayer, id: lastClickedFeatureId },
-        { clicked: false }
-      );
+        // Retirer tous les états précédents
+        map.removeFeatureState({
+            source: layerId,
+            sourceLayer: config.sourceLayer
+        });
     }
-    map.setFeatureState(
-      { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
-      { clicked: true }
-    );
+
+    // Sélectionner toutes les parties du nouvel IRIS
+    allIrisFeatures.forEach(f => {
+        map.setFeatureState(
+            { 
+                source: layerId, 
+                sourceLayer: config.sourceLayer, 
+                id: f.id 
+            },
+            { clicked: true }
+        );
+    });
+
     lastClickedFeatureId = feature.id;
 
-    // envoyons à Bubble
+    // Envoi à Bubble
     if (typeof bubble_fn_mapClicked === 'function') {
-      bubble_fn_mapClicked({
-        output1: layerId,
-        output2: codeVal
-      });
+        bubble_fn_mapClicked({
+            output1: layerId,
+            output2: codeIris
+        });
     }
-  }
-
+}
 
   // -------------------------------------
-  // 5 bis) clic sur les couches IRIS
+  // 5 bis) clic sur les couches IRIS (fonction supprimée pour l'instant)
   // -------------------------------------
 
-  function handleIrisClick(e, layerId) {
-    const config = layerConfigs[layerId];
-    if (!config) return;
 
-    const feature = e.features[0];
-    if (!feature) return;
-
-    // Récupérer l'ID IRIS
-    const irisCode = feature.properties[config.idField];
-
-    // 1) Désélectionner l'ancien polygone, si lastClickedFeatureId existe
-    if (lastClickedFeatureId) {
-      map.setFeatureState(
-        { source: layerId, sourceLayer: config.sourceLayer, id: lastClickedFeatureId },
-        { clicked: false }
-      );
-    }
-
-    // 2) Sélectionner le nouveau
-    map.setFeatureState(
-      { source: layerId, sourceLayer: config.sourceLayer, id: feature.id },
-      { clicked: true }
-    );
-    lastClickedFeatureId = feature.id; // on mémorise
-
-    console.log("IRIS cliqué, code =", irisCode);
-
-    // 3) Envoyer l'info à Bubble : 
-    //    par ex. on appelle bubble_fn_mapClicked si défini
-    if (typeof bubble_fn_mapClicked === 'function') {
-      bubble_fn_mapClicked({
-        output1: 'iris',
-        output2: irisCode
-      });
-    }
-  }
 
 // -------------------------------------
 // 6) Filtrage pour "filterable" type
@@ -400,6 +398,15 @@ window.filterIRIS = function(irisString) {
     console.error("La carte n'est pas encore chargée");
     return;
   }
+
+    // Réinitialiser l'état des features
+    if (lastClickedFeatureId) {
+        map.removeFeatureState({
+            source: 'iris',
+            sourceLayer: layerConfigs.iris.sourceLayer
+        });
+        lastClickedFeatureId = null;
+    }
 
   // 1. Convertir la chaîne en tableau
   let selectedIds;
@@ -466,6 +473,31 @@ window.filterIRIS = function(irisString) {
   } catch (error) {
     console.error("Erreur lors de l'application du filtre:", error);
   }
+
+      // Ajouter un gestionnaire pour le zoom
+    map.on('zoom', () => {
+        // Réappliquer l'état si nécessaire
+        if (lastClickedFeatureId) {
+            const feature = map.querySourceFeatures('iris', {
+                sourceLayer: layerConfigs.iris.sourceLayer,
+                filter: ['==', ['id'], lastClickedFeatureId]
+            })[0];
+            
+            if (feature) {
+                map.setFeatureState(
+                    { 
+                        source: 'iris', 
+                        sourceLayer: layerConfigs.iris.sourceLayer, 
+                        id: lastClickedFeatureId 
+                    },
+                    { clicked: true }
+                );
+            }
+        }
+    });
+
+
+
 };
 
 
