@@ -127,9 +127,17 @@ function checkMapboxLoaded() {
   return true;
 }
 
-if (checkMapboxLoaded()) {
-  initializeMap();
-}
+// Modification pour permettre le partage du lien preview : ajout d'un écouteur pour attendre le chargement de Mapbox GL JS avant le chargement du script
+document.addEventListener('DOMContentLoaded', () => {
+  const mapboxScript = document.createElement('script');
+  mapboxScript.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+  mapboxScript.onload = () => {
+    if (checkMapboxLoaded()) {
+      initializeMap();
+    }
+  };
+  document.head.appendChild(mapboxScript);
+});
 
 function initializeMap() {
   console.log('Initialisation de la carte...');
