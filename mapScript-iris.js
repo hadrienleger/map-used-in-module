@@ -127,7 +127,6 @@ function checkMapboxLoaded() {
   return true;
 }
 
-// Modification pour permettre le partage du lien preview : ajout d'un écouteur pour attendre le chargement de Mapbox GL JS avant le chargement du script
 window.onload = () => {
   console.log('Window loaded, checking Mapbox GL JS...');
   if (typeof mapboxgl === 'undefined') {
@@ -139,7 +138,7 @@ window.onload = () => {
 };
 
 function initializeMap() {
-  console.log('Début de l''initialisation de la carte...');
+  console.log('Début de initialisation de la carte...');
   mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
 
   try {
