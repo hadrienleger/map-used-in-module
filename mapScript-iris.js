@@ -152,135 +152,50 @@ function initializeMap() {
       }
     });
 
-    // Vérifier si le script de la SearchBox est chargé
-    checkSearchBoxScriptAndInitialize();
+// Ajout de la barre de recherche
+    if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
+      const searchBox = new mapboxsearch.MapboxSearchBox();
+      
+      // Configuration de la barre de recherche
+      searchBox.accessToken = mapboxgl.accessToken;
+      searchBox.options = {
+        types: 'address,poi',          // Recherche limitée aux adresses et POI
+        language: 'fr',                // Langue française
+        proximity: map.getCenter()     // Priorité aux résultats proches du centre de la carte
+      };
+      searchBox.mapboxgl = mapboxgl;   // Liaison avec la bibliothèque Mapbox GL JS
+      searchBox.marker = true;         // Ajout automatique d'un marqueur aux résultats
+
+      // Lier la barre de recherche à la carte
+      searchBox.bindMap(map);
+
+      // Ajouter la barre de recherche au DOM (par exemple dans un conteneur spécifique)
+      const searchContainer = document.createElement('div');
+      searchContainer.id = 'search-box-container';
+      searchContainer.style.position = 'absolute';
+      searchContainer.style.top = '10px';
+      searchContainer.style.left = '10px';
+      searchContainer.style.zIndex = '1';
+      document.getElementById('map').parentNode.appendChild(searchContainer);
+      searchContainer.appendChild(searchBox);
+
+      // Optionnel : Personnalisation du marqueur via l'événement 'retrieve'
+      searchBox.addEventListener('retrieve', (event) => {
+        console.log("Résultat de la recherche :", event.detail);
+        // Si tu veux personnaliser le marqueur, décommente et ajuste ceci :
+        /*
+        const coordinates = event.detail.feature.geometry.coordinates;
+        const customMarker = new mapboxgl.Marker({ color: '#FF0000' })
+          .setLngLat(coordinates)
+          .addTo(map);
+        */
+      });
+    } else {
+      console.error("Mapbox Search JS n'est pas chargé ou MapboxSearchBox n'est pas défini. Vérifie l'inclusion du script.");
+    }
   });
 }
 
-// -------------------------------------
-// 2)bis Initialisation de la searchbox
-// -------------------------------------
-
-// Fonction pour vérifier si le script de SearchBox est chargé
-function checkSearchBoxScriptAndInitialize() {
-  // Vérifier si le composant custom est défini
-  if (customElements.get('mapbox-search-box')) {
-    console.log("Le composant mapbox-search-box est déjà défini, initialisation...");
-    initializeSearchBox();
-  } else {
-    console.log("Le composant mapbox-search-box n'est pas encore défini. Tentative de chargement...");
-    
-    // Vérifier si le script existe déjà
-    const existingScript = document.getElementById('search-js');
-    if (!existingScript) {
-      // Ajouter le script si nécessaire
-      const script = document.createElement('script');
-      script.id = 'search-js';
-      script.src = 'https://api.mapbox.com/search-js/v1.0.0/web.js';
-      script.defer = true;
-      
-      script.onload = () => {
-        console.log("Script de SearchBox chargé, initialisation...");
-        // Attendre un peu que les composants soient définis
-        setTimeout(initializeSearchBox, 500);
-      };
-      
-      script.onerror = () => {
-        console.error("Impossible de charger le script de la SearchBox Mapbox.");
-      };
-      
-      document.head.appendChild(script);
-    } else {
-      // Le script existe déjà mais peut-être qu'il est encore en train de charger
-      console.log("Le script existe déjà, attente d'initialisation...");
-      setTimeout(initializeSearchBox, 500);
-    }
-  }
-}
-
-// Fonction pour initialiser la SearchBox
-function initializeSearchBox() {
-  try {
-    console.log("Initialisation de la SearchBox...");
-    
-    // Création de la div container pour la SearchBox
-    const searchContainer = document.createElement('div');
-    searchContainer.id = 'search-container';
-    searchContainer.style.position = 'absolute';
-    searchContainer.style.top = '10px';
-    searchContainer.style.left = '10px';
-    searchContainer.style.zIndex = '1';
-    searchContainer.style.width = '350px';
-    document.getElementById('map').appendChild(searchContainer);
-    
-    // Selon la documentation actuelle, on utilise directement l'élément HTML mapbox-search-box
-    const searchBoxElement = document.createElement('mapbox-search-box');
-    searchBoxElement.setAttribute('access-token', mapboxgl.accessToken);
-    
-    // Personnalisation de l'aspect visuel
-    searchBoxElement.style.width = '100%';
-
-    // Ajouter au conteneur
-    searchContainer.appendChild(searchBoxElement);
-
-    // Configurer les options pour les résultats de recherche
-    searchBoxElement.options = {
-      types: 'address,poi',
-      language: 'fr',
-      proximity: map.getCenter()
-    };
-
-    // Configurer pour l'utilisation avec la carte
-    searchBoxElement.mapboxgl = mapboxgl;
-    searchBoxElement.marker = true;
-    searchBoxElement.bindMap(map);
-    
-    // Écouter l'événement retrieve
-    searchBoxElement.addEventListener("retrieve", (event) => {
-      console.log("Résultat de la recherche:", event.detail);
-      
-      // Si nous voulons gérer notre propre marqueur, nous supprimons celui par défaut
-      // et créons le nôtre, sinon nous utilisons celui fourni par mapbox
-      if (searchBoxElement.marker) {
-        // On peut accéder au marqueur via searchBoxElement._marker si nécessaire
-        searchMarker = searchBoxElement._marker;
-      } else {
-        // Créer notre propre marqueur
-        if (searchMarker) {
-          searchMarker.remove();
-        }
-        
-        const coordinates = event.detail.features[0].geometry.coordinates;
-        searchMarker = new mapboxgl.Marker({
-          color: "#FF0000"
-        })
-          .setLngLat(coordinates)
-          .addTo(map);
-        
-        // Centrer la carte sur le résultat - ceci est fait automatiquement si bindMap est utilisé
-        map.flyTo({
-          center: coordinates,
-          zoom: 15
-        });
-      }
-      
-      // Envoyer les données à Bubble si une fonction est disponible
-      if (typeof bubble_fn_searchResult === 'function') {
-        bubble_fn_searchResult({
-          output1: JSON.stringify({
-            coordinates: event.detail.features[0].geometry.coordinates,
-            address: event.detail.features[0].properties,
-            placeName: event.detail.features[0].place_name
-          })
-        });
-      }
-    });
-    
-    console.log("SearchBox initialisée avec succès.");
-  } catch (error) {
-    console.error("Erreur lors de l'initialisation de la SearchBox:", error);
-  }
-}
 
 // -------------------------------------
 // 3) hideAllLayers() : masquer tout
