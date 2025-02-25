@@ -178,7 +178,7 @@ function initializeMap() {
       searchContainer.style.left = '50%';              // Centrage horizontal
       searchContainer.style.transform = 'translateX(-50%)'; // Ajustement pour vrai centrage
       searchContainer.style.zIndex = '1';
-      searchContainer.style.width = '300px';           // Réduction de la longueur (ajustable)
+      searchContainer.style.width = '100px';           // Réduction de la longueur (ajustable)
       document.getElementById('map').parentNode.appendChild(searchContainer);
       searchContainer.appendChild(searchBox);
 
