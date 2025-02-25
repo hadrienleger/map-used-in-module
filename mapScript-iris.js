@@ -121,14 +121,14 @@ const layerConfigs = {
 
 function checkMapboxLoaded() {
   if (typeof mapboxgl === 'undefined') {
-    console.error('Mapbox GL JS n\'est pas chargé.');
+    console.error("Mapbox GL JS n\'est pas chargé.");
     return false;
   }
   return true;
 }
 
 window.onload = () => {
-  console.log('Window loaded, checking Mapbox GL JS...');
+  console.log("Window loaded, checking Mapbox GL JS...");
   if (typeof mapboxgl === 'undefined') {
     console.error("Mapbox GL JS n’est pas chargé.");
     return;
