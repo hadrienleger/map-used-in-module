@@ -151,37 +151,40 @@ function initializeMap() {
         map.addSource(layerId, layerConfigs[layerId].source);
       }
     });
-    
-    // Configuration de la Search Box
+
+    // Ajout de la barre de recherche
     if (typeof MapboxSearchBox !== 'undefined') {
-        initializeSearchBox();
+      const searchBox = new MapboxSearchBox({
+        accessToken: mapboxgl.accessToken,
+        options: {
+          types: 'address,poi',         // Recherche d'adresses et points d'intérêts
+          proximity: map.getCenter(),     // Centre la recherche sur la zone affichée
+          language: 'fr'
+        },
+        marker: true,                     // Affiche un marqueur automatiquement
+        mapboxgl: mapboxgl
+      });
+      // Positionner la search box (ici en haut à droite, mais c'est modifiable via CSS)
+      map.addControl(searchBox, 'top-right');
+
+      // Écouter l'événement 'retrieve' pour récupérer le résultat de la recherche
+      searchBox.addEventListener('retrieve', (event) => {
+        console.log("Résultat de la recherche :", event.detail);
+        // Par exemple, pour avoir la main sur le marqueur :
+        // - Soit on laisse le marqueur automatique (marker: true)
+        // - Soit on le désactive et on crée notre propre marqueur avec event.detail.feature.geometry.coordinates
+        // Si tu veux personnaliser le marqueur, tu peux faire :
+        // searchBox.marker.remove();
+        // const customMarker = new mapboxgl.Marker({ color: '#FF0000' })
+        //       .setLngLat(event.detail.feature.geometry.coordinates)
+        //       .addTo(map);
+      });
     } else {
-        console.error("MapboxSearchBox is not defined. Make sure the script is loaded correctly.");
+      console.error("MapboxSearchBox n'est pas chargé. Vérifie que le script est bien inclus.");
     }
 
+    
   });
-}
-
-// -------------------------------------
-// 2)bis Fonctions d'initialisation
-// -------------------------------------
-
-function initializeSearchBox() {
-    searchBox = new MapboxSearchBox();
-    searchBox.accessToken = mapboxgl.accessToken;
-    searchBox.options = {
-        types: 'address,poi',
-        proximity: [2.33, 48.86], // Paris
-        language: 'fr'
-    };
-    searchBox.marker = true;
-    searchBox.mapboxgl = mapboxgl;
-    map.addControl(searchBox);
-
-    searchBox.addEventListener('retrieve', (event) => {
-        console.log("Événement retrieve complet:", JSON.stringify(event, null, 2));
-        handleSearchResult(event.detail);
-    });
 }
 
 // -------------------------------------
@@ -377,6 +380,8 @@ function handleLayerClick(e, layerId) {
   // -------------------------------------
   // 5 bis) clic sur les couches IRIS (fonction supprimée pour l'instant)
   // -------------------------------------
+
+
 
 // -------------------------------------
 // 6) Filtrage pour "filterable" type
