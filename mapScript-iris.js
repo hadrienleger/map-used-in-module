@@ -209,6 +209,9 @@ function initializeMap() {
       console.error("Mapbox Search JS n'est pas chargé ou MapboxSearchBox n'est pas défini. Vérifie l'inclusion du script.");
     }
   });
+  map.on('error', (e) => {
+    console.error('Erreur Mapbox :', e);
+  });
 }
 
 
