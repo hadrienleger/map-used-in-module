@@ -131,10 +131,10 @@ function checkMapboxLoaded() {
 window.onload = () => {
   console.log('Window loaded, checking Mapbox GL JS...');
   if (typeof mapboxgl === 'undefined') {
-    console.error('Mapbox GL JS n’est pas chargé.');
+    console.error("Mapbox GL JS n’est pas chargé.");
     return;
   }
-  console.log('Mapbox GL JS est chargé, initialisation de la carte...');
+  console.log("Mapbox GL JS est chargé, initialisation de la carte...");
   initializeMap();
 };
 
@@ -559,17 +559,5 @@ window.filterIRIS = function(irisString) {
 
 
 
-};
-
-
-// ----------------------------------------------------------------------------
-// 8) Au chargement de la page, on init la map
-// ----------------------------------------------------------------------------
-window.onload = () => {
-  if (typeof mapboxgl === 'undefined') {
-    console.error("Pas de mapbox !");
-    return;
-  }
-  initializeMap();
 };
 
