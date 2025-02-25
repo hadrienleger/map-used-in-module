@@ -8,6 +8,7 @@
   <!-- Inclusion des feuilles de style et scripts Mapbox -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <script src="https://api.mapbox.com/search-js/v1.0.0-beta.17/web.js"></script>
 
   <!-- Style personnalisé pour la carte -->
   <style>
@@ -31,6 +32,14 @@
         width: 20px;
         height: 20px;
         margin-right: 5px;
+    }
+
+    .mapboxgl-ctrl-top-right {
+      top: 10px;
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 50%;
     }
 
   </style>
