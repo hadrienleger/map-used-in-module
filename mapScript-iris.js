@@ -209,7 +209,7 @@ function initializeMap() {
     }
   });
   map.on('error', (e) => {
-    console.error('Erreur Mapbox :', e);
+    console.error("Erreur Mapbox :", e);
   });
 }
 
