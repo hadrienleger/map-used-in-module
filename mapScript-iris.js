@@ -128,28 +128,32 @@ function checkMapboxLoaded() {
 }
 
 // Modification pour permettre le partage du lien preview : ajout d'un écouteur pour attendre le chargement de Mapbox GL JS avant le chargement du script
-document.addEventListener('DOMContentLoaded', () => {
-  const mapboxScript = document.createElement('script');
-  mapboxScript.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
-  mapboxScript.onload = () => {
-    if (checkMapboxLoaded()) {
-      initializeMap();
-    }
-  };
-  document.head.appendChild(mapboxScript);
-});
+window.onload = () => {
+  console.log('Window loaded, checking Mapbox GL JS...');
+  if (typeof mapboxgl === 'undefined') {
+    console.error('Mapbox GL JS n’est pas chargé.');
+    return;
+  }
+  console.log('Mapbox GL JS est chargé, initialisation de la carte...');
+  initializeMap();
+};
 
 function initializeMap() {
-  console.log('Initialisation de la carte...');
+  console.log('Début de l''initialisation de la carte...');
   mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
 
-  map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/streets-v12',
-    center: [2.361, 48.852],
-    zoom: 10
-  });
-
+  try {
+    map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [2.361, 48.852],
+      zoom: 10
+    });
+    console.log('Instance de la carte créée.');
+  } catch (error) {
+    console.error('Erreur lors de la création de la carte :', error);
+  }
+  
   map.on('load', () => {
     console.log('Carte chargée avec succès.');
 
