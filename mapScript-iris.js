@@ -138,7 +138,7 @@ window.onload = () => {
 };
 
 function initializeMap() {
-  console.log('Début de initialisation de la carte...');
+  console.log("Début de initialisation de la carte...");
   mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
 
   try {
@@ -148,13 +148,13 @@ function initializeMap() {
       center: [2.361, 48.852],
       zoom: 10
     });
-    console.log('Instance de la carte créée.');
+    console.log("Instance de la carte créée.");
   } catch (error) {
-    console.error('Erreur lors de la création de la carte :', error);
+    console.error("Erreur lors de la création de la carte :", error);
   }
   
   map.on('load', () => {
-    console.log('Carte chargée avec succès.');
+    console.log("Carte chargée avec succès.");
 
     // Ajouter toutes les sources
     Object.keys(layerConfigs).forEach(layerId => {
