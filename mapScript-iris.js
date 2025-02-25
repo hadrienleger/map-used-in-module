@@ -161,7 +161,7 @@ function initializeMap() {
       searchBox.options = {
         types: 'address,poi',          // Recherche limitée aux adresses et POI
         language: 'fr',                // Langue française
-        proximity: map.getCenter()     // Priorité aux résultats proches du centre de la carte
+        proximity: map.getCenter(),     // Priorité aux résultats proches du centre de la carte
         placeholder: 'Recherchez une adresse ou un lieu'
       };
       searchBox.mapboxgl = mapboxgl;   // Liaison avec la bibliothèque Mapbox GL JS
@@ -178,7 +178,7 @@ function initializeMap() {
       searchContainer.style.left = '50%';              // Centrage horizontal
       searchContainer.style.transform = 'translateX(-50%)'; // Ajustement pour vrai centrage
       searchContainer.style.zIndex = '1';
-      searchContainer.style.width = '100px';           // Réduction de la longueur (ajustable)
+      searchContainer.style.width = '300px';           // Réduction de la longueur (ajustable)
       document.getElementById('map').parentNode.appendChild(searchContainer);
       searchContainer.appendChild(searchBox);
 
