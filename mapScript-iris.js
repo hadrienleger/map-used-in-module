@@ -127,16 +127,6 @@ function checkMapboxLoaded() {
   return true;
 }
 
-window.onload = () => {
-  console.log("Window loaded, checking Mapbox GL JS...");
-  if (typeof mapboxgl === 'undefined') {
-    console.error("Mapbox GL JS n’est pas chargé.");
-    return;
-  }
-  console.log("Mapbox GL JS est chargé, initialisation de la carte...");
-  initializeMap();
-};
-
 function initializeMap() {
   console.log("Début de initialisation de la carte...");
   mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
@@ -556,6 +546,8 @@ window.filterIRIS = function(irisString) {
         }
     });
 
+console.log("Script chargé, on initialise directement la carte.");
+initializeMap();
 
 
 };
