@@ -152,9 +152,13 @@ function initializeMap() {
       }
     });
     
-  // Initialisation de la searchbox dans une fonction dédiée
-  initializeSearchBox();
-    
+    // Configuration de la Search Box
+    if (typeof MapboxSearchBox !== 'undefined') {
+        initializeSearchBox();
+    } else {
+        console.error("MapboxSearchBox is not defined. Make sure the script is loaded correctly.");
+    }
+
   });
 }
 
@@ -163,34 +167,21 @@ function initializeMap() {
 // -------------------------------------
 
 function initializeSearchBox() {
-  if (typeof MapboxSearchBox !== 'undefined') {
-    const searchBox = new MapboxSearchBox({
-      accessToken: mapboxgl.accessToken,
-      options: {
-        types: 'address,poi',         // On recherche adresses et points d'intérêts
-        proximity: map.getCenter(),     // Centre de la recherche sur la carte
+    searchBox = new MapboxSearchBox();
+    searchBox.accessToken = mapboxgl.accessToken;
+    searchBox.options = {
+        types: 'address,poi',
+        proximity: [2.33, 48.86], // Paris
         language: 'fr'
-      },
-      marker: false,                    // On désactive le marqueur automatique
-      mapboxgl: mapboxgl
-    });
-    
-    // Ajout du contrôle à la carte (position top-right, modifiable via CSS)
-    map.addControl(searchBox, 'top-right');
+    };
+    searchBox.marker = true;
+    searchBox.mapboxgl = mapboxgl;
+    map.addControl(searchBox);
 
-    // Écoute de l'événement 'retrieve' pour récupérer le résultat de la recherche
     searchBox.addEventListener('retrieve', (event) => {
-      console.log("Résultat de la recherche :", event.detail);
-      const coords = event.detail.feature.geometry.coordinates;
-      
-      // Création d'un marqueur personnalisé (ici en rouge)
-      new mapboxgl.Marker({ color: '#FF0000' })
-        .setLngLat(coords)
-        .addTo(map);
+        console.log("Événement retrieve complet:", JSON.stringify(event, null, 2));
+        handleSearchResult(event.detail);
     });
-  } else {
-    console.error("MapboxSearchBox n'est pas défini. Vérifie que le script https://api.mapbox.com/search-js/v1.0.0-beta.17/web.js est bien chargé.");
-  }
 }
 
 // -------------------------------------
