@@ -119,25 +119,29 @@ const layerConfigs = {
 // 2) Initialiser la carte
 // -------------------------------------
 
-function checkMapboxLoaded() {
-  if (typeof mapboxgl === 'undefined') {
-    console.error("Mapbox GL JS n\'est pas chargé.");
+// Fonction utilitaire pour vérifier de manière sûre si la carte est chargée
+// Fonction utilitaire pour vérifier si la carte est prête à être utilisée
+function isMapReady(mapInstance) {
+  if (!mapInstance) return false;
+  
+  // Vérifier si les méthodes essentielles existent
+  const methods = ['getSource', 'addSource', 'getLayer', 'addLayer', 'setLayoutProperty'];
+  const allMethodsExist = methods.every(method => typeof mapInstance[method] === 'function');
+  
+  if (!allMethodsExist) {
+    console.warn("Certaines méthodes attendues n'existent pas sur l'instance de carte");
     return false;
   }
-  return true;
-}
-
-// Fonction utilitaire pour vérifier de manière sûre si la carte est chargée
-function isMapLoaded(mapInstance) {
-  // Différentes façons de vérifier si la carte est chargée
+  
+  // Vérifier si la carte est chargée
   if (typeof mapInstance.loaded === 'function') {
     return mapInstance.loaded();
   } else if (mapInstance._loaded !== undefined) {
     return mapInstance._loaded === true;
   } else {
-    // Fallback conservative: la carte a probablement commencé à charger
-    console.warn("Impossible de déterminer avec certitude si la carte est chargée");
-    return true; // Supposons qu'elle est chargée pour tenter l'opération
+    // Si on ne peut pas déterminer si la carte est chargée
+    console.warn("Impossible de déterminer si la carte est chargée, on suppose qu'elle ne l'est pas");
+    return false;
   }
 }
 
@@ -152,30 +156,72 @@ window.onload = () => {
 };
 
 function initializeMap() {
-  console.log("Vérification de l'initialisation de la carte...");
+  console.log("Tentative d'initialisation de la carte...");
   
-  // Si la carte existe déjà, utilisez-la au lieu d'en créer une nouvelle
+  // Si une carte existe déjà
   if (window.map) {
-    console.log("Carte déjà initialisée, utilisation de l'instance existante");
+    console.log("Instance de carte existante trouvée");
     map = window.map;
     
-    // Vérifier si la carte est déjà chargée
-    if (isMapLoaded(map)) {
-      console.log("Carte déjà chargée, configuration immédiate");
-      
-      // Ajouter toutes les sources
-      Object.keys(layerConfigs).forEach(layerId => {
-        if (!map.getSource(layerId)) {
-          try {
-            map.addSource(layerId, layerConfigs[layerId].source);
-            console.log(`Source ${layerId} ajoutée avec succès`);
-          } catch (error) {
-            console.error(`Erreur lors de l'ajout de la source ${layerId}:`, error);
-          }
-        }
+    // Vérifier si la carte est prête
+    if (isMapReady(map)) {
+      console.log("Carte existante prête, configuration...");
+      configureMap(map);
+    } else {
+      console.log("Carte existante pas encore prête, attente de l'événement load");
+      map.once('load', function() {
+        console.log("Événement load déclenché pour la carte existante");
+        configureMap(map);
       });
-      
-      // Ajout de la barre de recherche
+    }
+    return;
+  }
+  
+  // Création d'une nouvelle carte
+  console.log("Création d'une nouvelle instance de carte");
+  try {
+    mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
+    map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [2.361, 48.852],
+      zoom: 10
+    });
+    
+    // Conserver la référence globale
+    window.map = map;
+    
+    console.log("Nouvelle carte créée, attente de l'événement load");
+    map.once('load', function() {
+      console.log("Événement load déclenché pour la nouvelle carte");
+      configureMap(map);
+    });
+  } catch (error) {
+    console.error("Erreur lors de la création de la carte:", error);
+  }
+}
+
+// Fonction pour configurer la carte une fois chargée
+function configureMap(mapInstance) {
+  try {
+    console.log("Configuration de la carte...");
+    
+    // Ajouter les sources
+    Object.keys(layerConfigs).forEach(layerId => {
+      try {
+        if (!mapInstance.getSource(layerId)) {
+          mapInstance.addSource(layerId, layerConfigs[layerId].source);
+          console.log(`Source ${layerId} ajoutée`);
+        } else {
+          console.log(`Source ${layerId} existe déjà`);
+        }
+      } catch (error) {
+        console.error(`Erreur lors de l'ajout de la source ${layerId}:`, error);
+      }
+    });
+    
+    // Ajouter la barre de recherche
+    try {
       if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
         const searchBox = new mapboxsearch.MapboxSearchBox();
         
@@ -184,14 +230,14 @@ function initializeMap() {
         searchBox.options = {
           types: 'address,poi',
           language: 'fr',
-          proximity: map.getCenter(),
+          proximity: mapInstance.getCenter(),
           placeholder: 'Recherchez une adresse ou un lieu'
         };
         searchBox.mapboxgl = mapboxgl;
         searchBox.marker = true;
 
         // Lier la barre de recherche à la carte
-        searchBox.bindMap(map);
+        searchBox.bindMap(mapInstance);
 
         // Ajouter la barre de recherche au DOM
         const searchContainer = document.createElement('div');
@@ -202,73 +248,23 @@ function initializeMap() {
         searchContainer.style.transform = 'translateX(-50%)';
         searchContainer.style.zIndex = '1';
         searchContainer.style.width = '300px';
-        document.getElementById('map').parentNode.appendChild(searchContainer);
-        searchContainer.appendChild(searchBox);
-      }
-    } else {
-      // Si la carte n'est pas encore chargée, attendre l'événement 'load'
-      console.log("Carte initialisée mais pas encore chargée, attente de l'événement load");
-      map.on('load', () => {
-        console.log("Carte chargée avec succès via l'événement load.");
         
-        // Ajouter toutes les sources
-        Object.keys(layerConfigs).forEach(layerId => {
-          if (!map.getSource(layerId)) {
-            try {
-              map.addSource(layerId, layerConfigs[layerId].source);
-              console.log(`Source ${layerId} ajoutée avec succès`);
-            } catch (error) {
-              console.error(`Erreur lors de l'ajout de la source ${layerId}:`, error);
-            }
-          }
-        });
-        
-        // Ajout de la barre de recherche
-        // (même code que ci-dessus)
-        if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
-          // Code de configuration de la searchBox...
+        const mapElement = document.getElementById('map');
+        if (mapElement && mapElement.parentNode) {
+          mapElement.parentNode.appendChild(searchContainer);
+          searchContainer.appendChild(searchBox);
+          console.log("Barre de recherche ajoutée");
+        } else {
+          console.error("Élément parent de la carte introuvable");
         }
-      });
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'ajout de la barre de recherche:", error);
     }
-    return;
-  }
-  
-  // Sinon, créez la carte comme avant
-  console.log("Début de l'initialisation de la carte...");
-  mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
-  try {
-    map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [2.361, 48.852],
-      zoom: 10
-    });
-    console.log("Instance de la carte créée.");
     
-    // Configurer la carte nouvellement créée
-    map.on('load', () => {
-      console.log("Carte nouvellement créée chargée avec succès.");
-      
-      // Ajouter toutes les sources
-      Object.keys(layerConfigs).forEach(layerId => {
-        if (!map.getSource(layerId)) {
-          try {
-            map.addSource(layerId, layerConfigs[layerId].source);
-            console.log(`Source ${layerId} ajoutée avec succès`);
-          } catch (error) {
-            console.error(`Erreur lors de l'ajout de la source ${layerId}:`, error);
-          }
-        }
-      });
-      
-      // Ajout de la barre de recherche
-      // (même code que ci-dessus)
-      if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
-        // Code de configuration de la searchBox...
-      }
-    });
+    console.log("Configuration de la carte terminée");
   } catch (error) {
-    console.error("Erreur lors de la création de la carte :", error);
+    console.error("Erreur lors de la configuration de la carte:", error);
   }
 }
 
@@ -277,26 +273,35 @@ function initializeMap() {
 // -------------------------------------
 function hideAllLayers() {
   console.log("=== hideAllLayers called ===");
+  
+  if (!map || !isMapReady(map)) {
+    console.error("La carte n'est pas prête pour masquer les couches");
+    return;
+  }
+  
   Object.keys(layerConfigs).forEach(layerId => {
-    const config = layerConfigs[layerId];
-    if (config.type === 'choropleth') {
-      // Masquer la couche choropleth
-      if (map.getLayer(`${layerId}-choropleth`)) {
-        map.setLayoutProperty(`${layerId}-choropleth`, 'visibility', 'none');
+    try {
+      const config = layerConfigs[layerId];
+      
+      if (config.type === 'choropleth') {
+        if (map.getLayer(`${layerId}-choropleth`)) {
+          map.setLayoutProperty(`${layerId}-choropleth`, 'visibility', 'none');
+        }
+        
+        if (config.labels?.enabled && map.getLayer(`${layerId}-labels`)) {
+          map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
+        }
+      } else {
+        if (map.getLayer(layerId)) {
+          map.setLayoutProperty(layerId, 'visibility', 'none');
+        }
+        
+        if (config.labels?.enabled && map.getLayer(`${layerId}-labels`)) {
+          map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
+        }
       }
-      // Masquer les labels pour les choropleths
-      if (config.labels?.enabled && map.getLayer(`${layerId}-labels`)) {
-        map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
-      }
-    } else {
-      // Masquer les autres types de couches
-      if (map.getLayer(layerId)) {
-        map.setLayoutProperty(layerId, 'visibility', 'none');
-      }
-      // Masquer les labels pour les autres couches
-      if (config.labels?.enabled && map.getLayer(`${layerId}-labels`)) {
-        map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
-      }
+    } catch (error) {
+      console.error(`Erreur lors de la tentative de masquer la couche ${layerId}:`, error);
     }
   });
 }
@@ -512,119 +517,135 @@ window.updateMapLayers = function(layerId) {
 // Fonction pour appeler la couche des IRIS
 // Modifions la fonction filterIRIS pour s'assurer que la carte est chargée
 window.filterIRIS = function(irisString) {
-    if (!map) {
-      console.error("La carte n'est pas initialisée");
-      return;
-    }
-
-    // Essayons d'attendre que la carte soit chargée si nécessaire
-    if (!isMapLoaded(map)) {
-      console.log("La carte n'est pas encore chargée, attente...");
-      map.once('load', function() {
-        // Rappeler la fonction une fois la carte chargée
-        window.filterIRIS(irisString);
-      });
-      return;
-    }
-
-    // Réinitialiser l'état des features
-    if (lastClickedFeatureId) {
-        map.removeFeatureState({
-            source: 'iris',
-            sourceLayer: layerConfigs.iris.sourceLayer
-        });
-        lastClickedFeatureId = null;
-    }
-
-  // 1. Convertir la chaîne en tableau
-  let selectedIds;
-  if (typeof irisString === 'string') {
-    selectedIds = irisString.split(',').map(item => item.trim());
-  } else {
-    selectedIds = irisString;
-  }
+  console.log("filterIRIS appelé avec:", irisString);
   
-  console.log("Filtrage des IRIS avec IDs:", selectedIds);
-
-  hideAllLayers();
-
-  // 2. Vérifier et configurer les couches
-  if (!map.getSource('iris')) {
-    console.error("La source 'iris' n'existe pas");
+  if (!map) {
+    console.error("La carte n'est pas initialisée");
     return;
   }
-
-  // 3. S'assurer que les deux couches sont ajoutées
-  if (!map.getLayer('iris')) {
-    addLayer('iris');
-  }
-
-  // 4. Rendre les couches visibles
-  map.setLayoutProperty('iris', 'visibility', 'visible');
-  if (map.getLayer('iris-labels')) {
-    map.setLayoutProperty('iris-labels', 'visibility', 'visible');
-  }
-
-  // 5. Appliquer le même filtre aux deux couches
-  try {
-    const filter = ['match', ['get', 'CODE_IRIS'], selectedIds, true, false];
-    
-    // Appliquer le filtre à la couche principale
-    map.setFilter('iris', filter);
-    
-    // Appliquer le même filtre à la couche des labels
-    if (map.getLayer('iris-labels')) {
-      map.setFilter('iris-labels', filter);
-    }
-
-    // 6. Ajuster la vue
-    const features = map.querySourceFeatures('iris', {
-      sourceLayer: layerConfigs.iris.sourceLayer,
-      filter: filter
+  
+  if (!isMapReady(map)) {
+    console.log("La carte n'est pas prête, enregistrement d'un rappel");
+    // Enregistrer la fonction pour être rappelée quand la carte est prête
+    map.once('load', function() {
+      console.log("Carte chargée, rappel de filterIRIS");
+      window.filterIRIS(irisString);
     });
-
-    if (features.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
-      features.forEach(feature => {
-        if (feature.geometry) {
-          if (feature.geometry.type === 'Polygon') {
-            feature.geometry.coordinates[0].forEach(coord => bounds.extend(coord));
-          } else if (feature.geometry.type === 'MultiPolygon') {
-            feature.geometry.coordinates.forEach(polygon => {
-              polygon[0].forEach(coord => bounds.extend(coord));
-            });
-          }
-        }
+    return;
+  }
+  
+  try {
+    // Réinitialiser l'état des features
+    if (lastClickedFeatureId) {
+      map.removeFeatureState({
+        source: 'iris',
+        sourceLayer: layerConfigs.iris.sourceLayer
       });
-      map.fitBounds(bounds, { padding: 50 });
+      lastClickedFeatureId = null;
+    }
+    
+    // 1. Convertir la chaîne en tableau
+    let selectedIds;
+    if (typeof irisString === 'string') {
+      selectedIds = irisString.split(',').map(item => item.trim());
+    } else {
+      selectedIds = irisString;
+    }
+    
+    console.log("Filtrage des IRIS avec IDs:", selectedIds);
+    
+    try {
+      hideAllLayers();
+    } catch (error) {
+      console.error("Erreur lors du masquage des couches:", error);
+    }
+    
+    // 2. Vérifier la source
+    if (!map.getSource('iris')) {
+      console.error("La source 'iris' n'existe pas");
+      
+      // Tentative d'ajout de la source
+      try {
+        map.addSource('iris', layerConfigs.iris.source);
+        console.log("Source 'iris' ajoutée");
+      } catch (error) {
+        console.error("Impossible d'ajouter la source 'iris':", error);
+        return;
+      }
+    }
+    
+    // 3. S'assurer que la couche est ajoutée
+    if (!map.getLayer('iris')) {
+      try {
+        addLayer('iris');
+        console.log("Couche 'iris' ajoutée");
+      } catch (error) {
+        console.error("Erreur lors de l'ajout de la couche 'iris':", error);
+        return;
+      }
+    }
+    
+    // 4. Rendre les couches visibles
+    try {
+      map.setLayoutProperty('iris', 'visibility', 'visible');
+      console.log("Couche 'iris' rendue visible");
+      
+      if (map.getLayer('iris-labels')) {
+        map.setLayoutProperty('iris-labels', 'visibility', 'visible');
+        console.log("Couche 'iris-labels' rendue visible");
+      }
+    } catch (error) {
+      console.error("Erreur lors du changement de visibilité:", error);
+    }
+    
+    // 5. Appliquer le filtre
+    try {
+      const filter = ['match', ['get', 'CODE_IRIS'], selectedIds, true, false];
+      console.log("Application du filtre:", filter);
+      
+      map.setFilter('iris', filter);
+      console.log("Filtre appliqué à la couche principale");
+      
+      if (map.getLayer('iris-labels')) {
+        map.setFilter('iris-labels', filter);
+        console.log("Filtre appliqué à la couche des labels");
+      }
+      
+      // 6. Ajuster la vue
+      try {
+        const features = map.querySourceFeatures('iris', {
+          sourceLayer: layerConfigs.iris.sourceLayer,
+          filter: filter
+        });
+        console.log(`Nombre de features trouvées: ${features.length}`);
+        
+        if (features.length > 0) {
+          const bounds = new mapboxgl.LngLatBounds();
+          features.forEach(feature => {
+            if (feature.geometry) {
+              if (feature.geometry.type === 'Polygon') {
+                feature.geometry.coordinates[0].forEach(coord => bounds.extend(coord));
+              } else if (feature.geometry.type === 'MultiPolygon') {
+                feature.geometry.coordinates.forEach(polygon => {
+                  polygon[0].forEach(coord => bounds.extend(coord));
+                });
+              }
+            }
+          });
+          
+          console.log("Ajustement de la vue aux features");
+          map.fitBounds(bounds, { padding: 50 });
+        } else {
+          console.log("Aucune feature trouvée, vue non ajustée");
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'ajustement de la vue:", error);
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'application du filtre:", error);
     }
   } catch (error) {
-    console.error("Erreur lors de l'application du filtre:", error);
+    console.error("Erreur générale dans filterIRIS:", error);
   }
-
-      // Ajouter un gestionnaire pour le zoom
-    map.on('zoom', () => {
-        // Réappliquer l'état si nécessaire
-        if (lastClickedFeatureId) {
-            const feature = map.querySourceFeatures('iris', {
-                sourceLayer: layerConfigs.iris.sourceLayer,
-                filter: ['==', ['id'], lastClickedFeatureId]
-            })[0];
-            
-            if (feature) {
-                map.setFeatureState(
-                    { 
-                        source: 'iris', 
-                        sourceLayer: layerConfigs.iris.sourceLayer, 
-                        id: lastClickedFeatureId 
-                    },
-                    { clicked: true }
-                );
-            }
-        }
-    });
-
-
-
 };
 
