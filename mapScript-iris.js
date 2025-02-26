@@ -546,15 +546,22 @@ window.filterIRIS = function(irisString) {
         }
     });
 
-window.onload = () => {
-  console.log("Window loaded, checking Mapbox GL JS...");
-  if (typeof mapboxgl === 'undefined') {
-    console.error("Mapbox GL JS n’est pas chargé.");
+console.log("Script mapScript-iris.js: démarrage...");
+
+function startIfMapExists() {
+  const mapDiv = document.getElementById("map");
+  if (!mapDiv) {
+    console.warn("Pas encore de <div id='map'>, on retente dans 300ms...");
+    setTimeout(startIfMapExists, 300);
     return;
   }
-  console.log("Mapbox GL JS est chargé, initialisation de la carte...");
-  initializeMap();
-};
+
+  console.log("Trouvé <div id='map'>, on initialise la carte.");
+  initializeMap(); // ta fonction habituelle
+}
+
+startIfMapExists();
+
 
 };
 
