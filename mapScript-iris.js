@@ -138,22 +138,15 @@ window.onload = () => {
 };
 
 function initializeMap() {
-  console.log("Début de initialisation de la carte...");
-  mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
-
-  try {
-    map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [2.361, 48.852],
-      zoom: 10
-    });
-    console.log("Instance de la carte créée.");
-  } catch (error) {
-    console.error("Erreur lors de la création de la carte :", error);
-  }
+  console.log("Vérification de l'initialisation de la carte...");
   
-  map.on('load', () => {
+  // Si la carte existe déjà, utilisez-la au lieu d'en créer une nouvelle
+  if (window.map) {
+    console.log("Carte déjà initialisée, utilisation de l'instance existante");
+    map = window.map;
+    
+    // Continuer avec la configuration (sources, recherche, etc.)
+    map.on('load', () => {
     console.log("Carte chargée avec succès.");
 
     // Ajouter toutes les sources
@@ -207,12 +200,27 @@ function initializeMap() {
     } else {
       console.error("Mapbox Search JS n'est pas chargé ou MapboxSearchBox n'est pas défini. Vérifie l'inclusion du script.");
     }
-  });
-  map.on('error', (e) => {
-    console.error("Erreur Mapbox :", e);
-  });
+     });
+    return
 }
 
+  // Sinon, créez la carte comme avant
+  console.log("Début de l'initialisation de la carte...");
+    console.log("Début de initialisation de la carte...");
+  mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
+  try {
+    map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [2.361, 48.852],
+      zoom: 10
+    });
+    console.log("Instance de la carte créée.");
+  } catch (error) {
+    console.error("Erreur lors de la création de la carte :", error);
+  }
+  
+}
 
 // -------------------------------------
 // 3) hideAllLayers() : masquer tout
