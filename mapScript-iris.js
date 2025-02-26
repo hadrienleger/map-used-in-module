@@ -127,6 +127,20 @@ function checkMapboxLoaded() {
   return true;
 }
 
+// Fonction utilitaire pour vérifier de manière sûre si la carte est chargée
+function isMapLoaded(mapInstance) {
+  // Différentes façons de vérifier si la carte est chargée
+  if (typeof mapInstance.loaded === 'function') {
+    return mapInstance.loaded();
+  } else if (mapInstance._loaded !== undefined) {
+    return mapInstance._loaded === true;
+  } else {
+    // Fallback conservative: la carte a probablement commencé à charger
+    console.warn("Impossible de déterminer avec certitude si la carte est chargée");
+    return true; // Supposons qu'elle est chargée pour tenter l'opération
+  }
+}
+
 window.onload = () => {
   console.log("Window loaded, checking Mapbox GL JS...");
   if (typeof mapboxgl === 'undefined') {
@@ -146,7 +160,7 @@ function initializeMap() {
     map = window.map;
     
     // Vérifier si la carte est déjà chargée
-    if (map.loaded && map.loaded()) {
+    if (isMapLoaded(map)) {
       console.log("Carte déjà chargée, configuration immédiate");
       
       // Ajouter toutes les sources
@@ -498,10 +512,20 @@ window.updateMapLayers = function(layerId) {
 // Fonction pour appeler la couche des IRIS
 // Modifions la fonction filterIRIS pour s'assurer que la carte est chargée
 window.filterIRIS = function(irisString) {
-  if (!map || !map.loaded()) {
-    console.error("La carte n'est pas encore chargée");
-    return;
-  }
+    if (!map) {
+      console.error("La carte n'est pas initialisée");
+      return;
+    }
+
+    // Essayons d'attendre que la carte soit chargée si nécessaire
+    if (!isMapLoaded(map)) {
+      console.log("La carte n'est pas encore chargée, attente...");
+      map.once('load', function() {
+        // Rappeler la fonction une fois la carte chargée
+        window.filterIRIS(irisString);
+      });
+      return;
+    }
 
     // Réinitialiser l'état des features
     if (lastClickedFeatureId) {
