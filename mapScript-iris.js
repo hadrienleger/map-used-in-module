@@ -547,6 +547,7 @@ window.filterIRIS = function(irisString) {
     });
 
 console.log("Script mapScript-iris.js: démarrage...");
+thisVariableDoesNotExist += 1; // Force un ReferenceError
 
 function startIfMapExists() {
   const mapDiv = document.getElementById("map");
