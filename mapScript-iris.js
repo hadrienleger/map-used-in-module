@@ -546,9 +546,15 @@ window.filterIRIS = function(irisString) {
         }
     });
 
-console.log("Script chargé, on initialise directement la carte.");
-initializeMap();
-
+window.onload = () => {
+  console.log("Window loaded, checking Mapbox GL JS...");
+  if (typeof mapboxgl === 'undefined') {
+    console.error("Mapbox GL JS n’est pas chargé.");
+    return;
+  }
+  console.log("Mapbox GL JS est chargé, initialisation de la carte...");
+  initializeMap();
+};
 
 };
 
