@@ -149,6 +149,7 @@ function initializeMap() {
     // Configurer la carte nouvellement créée
     map.on('load', () => {
       console.log("Carte nouvellement créée chargée avec succès.");
+      window.mapReady = true;
       
       // Ajouter toutes les sources
       Object.keys(layerConfigs).forEach(layerId => {
@@ -417,6 +418,11 @@ window.filterIRIS = function(irisString) {
       console.error("La carte n'est pas initialisée");
       return;
     }
+
+if (!window.mapReady) {
+  console.log("Pas encore prêt");
+  return;
+}
 
     // Essayons d'attendre que la carte soit chargée si nécessaire
     if (!isMapLoaded(map)) {
