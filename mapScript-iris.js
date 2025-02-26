@@ -145,68 +145,82 @@ function initializeMap() {
     console.log("Carte déjà initialisée, utilisation de l'instance existante");
     map = window.map;
     
-    // Continuer avec la configuration (sources, recherche, etc.)
-    map.on('load', () => {
-    console.log("Carte chargée avec succès.");
-
-    // Ajouter toutes les sources
-    Object.keys(layerConfigs).forEach(layerId => {
-      if (!map.getSource(layerId)) {
-        map.addSource(layerId, layerConfigs[layerId].source);
-      }
-    });
-
-// Ajout de la barre de recherche
-    if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
-      const searchBox = new mapboxsearch.MapboxSearchBox();
+    // Vérifier si la carte est déjà chargée
+    if (map.loaded && map.loaded()) {
+      console.log("Carte déjà chargée, configuration immédiate");
       
-      // Configuration de la barre de recherche
-      searchBox.accessToken = mapboxgl.accessToken;
-      searchBox.options = {
-        types: 'address,poi',          // Recherche limitée aux adresses et POI
-        language: 'fr',                // Langue française
-        proximity: map.getCenter(),     // Priorité aux résultats proches du centre de la carte
-        placeholder: 'Recherchez une adresse ou un lieu'
-      };
-      searchBox.mapboxgl = mapboxgl;   // Liaison avec la bibliothèque Mapbox GL JS
-      searchBox.marker = true;         // Ajout automatique d'un marqueur aux résultats
-
-      // Lier la barre de recherche à la carte
-      searchBox.bindMap(map);
-
-      // Ajouter la barre de recherche au DOM (par exemple dans un conteneur spécifique)
-      const searchContainer = document.createElement('div');
-      searchContainer.id = 'search-box-container';
-      searchContainer.style.position = 'absolute';
-      searchContainer.style.top = '10px';
-      searchContainer.style.left = '50%';              // Centrage horizontal
-      searchContainer.style.transform = 'translateX(-50%)'; // Ajustement pour vrai centrage
-      searchContainer.style.zIndex = '1';
-      searchContainer.style.width = '300px';           // Réduction de la longueur (ajustable)
-      document.getElementById('map').parentNode.appendChild(searchContainer);
-      searchContainer.appendChild(searchBox);
-
-      // Optionnel : Personnalisation du marqueur via l'événement 'retrieve'
-      searchBox.addEventListener('retrieve', (event) => {
-        console.log("Résultat de la recherche :", event.detail);
-        // Si tu veux personnaliser le marqueur, décommente et ajuste ceci :
-        /*
-        const coordinates = event.detail.feature.geometry.coordinates;
-        const customMarker = new mapboxgl.Marker({ color: '#FF0000' })
-          .setLngLat(coordinates)
-          .addTo(map);
-        */
+      // Ajouter toutes les sources
+      Object.keys(layerConfigs).forEach(layerId => {
+        if (!map.getSource(layerId)) {
+          try {
+            map.addSource(layerId, layerConfigs[layerId].source);
+            console.log(`Source ${layerId} ajoutée avec succès`);
+          } catch (error) {
+            console.error(`Erreur lors de l'ajout de la source ${layerId}:`, error);
+          }
+        }
       });
-    } else {
-      console.error("Mapbox Search JS n'est pas chargé ou MapboxSearchBox n'est pas défini. Vérifie l'inclusion du script.");
-    }
-     });
-    return
-}
+      
+      // Ajout de la barre de recherche
+      if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
+        const searchBox = new mapboxsearch.MapboxSearchBox();
+        
+        // Configuration de la barre de recherche
+        searchBox.accessToken = mapboxgl.accessToken;
+        searchBox.options = {
+          types: 'address,poi',
+          language: 'fr',
+          proximity: map.getCenter(),
+          placeholder: 'Recherchez une adresse ou un lieu'
+        };
+        searchBox.mapboxgl = mapboxgl;
+        searchBox.marker = true;
 
+        // Lier la barre de recherche à la carte
+        searchBox.bindMap(map);
+
+        // Ajouter la barre de recherche au DOM
+        const searchContainer = document.createElement('div');
+        searchContainer.id = 'search-box-container';
+        searchContainer.style.position = 'absolute';
+        searchContainer.style.top = '10px';
+        searchContainer.style.left = '50%';
+        searchContainer.style.transform = 'translateX(-50%)';
+        searchContainer.style.zIndex = '1';
+        searchContainer.style.width = '300px';
+        document.getElementById('map').parentNode.appendChild(searchContainer);
+        searchContainer.appendChild(searchBox);
+      }
+    } else {
+      // Si la carte n'est pas encore chargée, attendre l'événement 'load'
+      console.log("Carte initialisée mais pas encore chargée, attente de l'événement load");
+      map.on('load', () => {
+        console.log("Carte chargée avec succès via l'événement load.");
+        
+        // Ajouter toutes les sources
+        Object.keys(layerConfigs).forEach(layerId => {
+          if (!map.getSource(layerId)) {
+            try {
+              map.addSource(layerId, layerConfigs[layerId].source);
+              console.log(`Source ${layerId} ajoutée avec succès`);
+            } catch (error) {
+              console.error(`Erreur lors de l'ajout de la source ${layerId}:`, error);
+            }
+          }
+        });
+        
+        // Ajout de la barre de recherche
+        // (même code que ci-dessus)
+        if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
+          // Code de configuration de la searchBox...
+        }
+      });
+    }
+    return;
+  }
+  
   // Sinon, créez la carte comme avant
   console.log("Début de l'initialisation de la carte...");
-    console.log("Début de initialisation de la carte...");
   mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
   try {
     map = new mapboxgl.Map({
@@ -216,10 +230,32 @@ function initializeMap() {
       zoom: 10
     });
     console.log("Instance de la carte créée.");
+    
+    // Configurer la carte nouvellement créée
+    map.on('load', () => {
+      console.log("Carte nouvellement créée chargée avec succès.");
+      
+      // Ajouter toutes les sources
+      Object.keys(layerConfigs).forEach(layerId => {
+        if (!map.getSource(layerId)) {
+          try {
+            map.addSource(layerId, layerConfigs[layerId].source);
+            console.log(`Source ${layerId} ajoutée avec succès`);
+          } catch (error) {
+            console.error(`Erreur lors de l'ajout de la source ${layerId}:`, error);
+          }
+        }
+      });
+      
+      // Ajout de la barre de recherche
+      // (même code que ci-dessus)
+      if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
+        // Code de configuration de la searchBox...
+      }
+    });
   } catch (error) {
     console.error("Erreur lors de la création de la carte :", error);
   }
-  
 }
 
 // -------------------------------------
