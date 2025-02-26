@@ -561,7 +561,3 @@ function startIfMapExists() {
 }
 
 startIfMapExists();
-
-
-};
-
