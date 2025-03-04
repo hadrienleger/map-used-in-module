@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Carte Mapbox avec sélection des communes et départements</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <script defer src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <script defer src="https://api.mapbox.com/search-js/v1.0.0/web.js"></script>
+
+  <style>
+    .my-map-container {
+      margin: 0;
+      padding: 0;
+      font-family: "Inter", sans-serif;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+    .legend {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      margin-right: 5px;
+    }
+    #search-box-container {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      zIndex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="my-map-container">
+    <div id="map"></div>
+    <div id="search-box-container"></div>
+  </div>
+
+  <script>
+    /****************************************************
+     * Code principal JavaScript pour la carte Mapbox
+     ****************************************************/
+    window.map = null; // Variable globale unique
+    let currentLayerId = null;
+
+    const layerConfigs = {
+      iris: {
+        source: { type: 'vector', url: 'mapbox://hadrienleger.ak5sb828' },
+        sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
+        basePaint: {
+          'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#FF0000', '#8338ec'],
+          'fill-opacity': 0.7,
+          'fill-outline-color': '#FFFFFF'
+        },
+        idField: 'CODE_IRIS',
+        clickable: true,
+        useFeatureStateClicked: true,
+        isChoropleth: false,
+        labels: { enabled: true, field: 'NOM_IRIS', textSize: 12, color: '#FFF', haloColor: '#000', haloWidth: 1 },
+        minzoom: 8,
+        maxzoom: 22
+      },
+      niveauVie: {
+        source: { type: 'vector', url: 'mapbox://hadrienleger.filosofi2019' },
+        sourceLayer: 'c200_filosofi_2019',
+        isChoropleth: true,
+        property: 'nv_moyen',
+        breaks: [15000, 20000, 25000, 30000, 35000],
+        colors: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'],
+        opacity: 0.5,
+        clickable: false,
+        labels: { enabled: false }
+      },
+      logementSocial: {
+        source: { type: 'vector', url: 'mapbox://hadrienleger.filosofi2019' },
+        sourceLayer: 'c200_filosofi_2019',
+        isChoropleth: true,
+        property: 'part_log_soc',
+        breaks: [5, 10, 15, 20, 25],
+        colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+        opacity: 0.5,
+        clickable: false,
+        labels: { enabled: false }
+      },
+      notesInsecurite: {
+        source: { type: 'vector', url: 'mapbox://hadrienleger.7ypxua5r' },
+        sourceLayer: 'communes_securite-2449ue',
+        isChoropleth: true,
+        property: 'note_sur_20',
+        breaks: [5, 10, 15, 20, 25],
+        colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+        opacity: 0.5,
+        clickable: false,
+        labels: { enabled: true, field: 'note_sur_20', textSize: 12, color: '#333', haloColor: 'rgba(255,255,255,0.8)', haloWidth: 2 }
+      }
+    };
+
+    function initializeMap() {
+      console.log('Tentative d’initialisation de la carte');
+      if (window.map) {
+        console.log('Carte déjà initialisée');
+        return;
+      }
+      if (!document.getElementById('map') || typeof mapboxgl === 'undefined') {
+        console.log('Mapbox GL JS ou #map non prêt, réessai dans 300ms');
+        setTimeout(initializeMap, 300);
+        return;
+      }
+
+      console.log('Initialisation de la carte...');
+      mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNsYm1oc3RidzA1NDczdm1xYTJmc3cwcm4ifQ.AguFBTkyTxFnz3VWFBSjrA';
+      try {
+        window.map = new mapboxgl.Map({
+          container: 'map',
+          style: 'mapbox://styles/mapbox/streets-v12',
+          center: [2.361, 48.852],
+          zoom: 10
+        });
+
+        window.map.on('load', () => {
+          console.log('Carte chargée avec succès');
+          Object.keys(layerConfigs).forEach(layerId => {
+            if (!window.map.getSource(layerId)) {
+              window.map.addSource(layerId, layerConfigs[layerId].source);
+            }
+          });
+
+          if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
+            const searchBox = new mapboxsearch.MapboxSearchBox();
+            searchBox.accessToken = mapboxgl.accessToken;
+            searchBox.options = {
+              types: 'address,poi',
+              language: 'fr',
+              proximity: window.map.getCenter(),
+              placeholder: 'Rechercher une adresse ou un lieu'
+            };
+            searchBox.mapboxgl = mapboxgl;
+            searchBox.marker = true;
+            searchBox.bindMap(window.map);
+            document.getElementById('search-box-container').appendChild(searchBox);
+
+            searchBox.addEventListener('retrieve', (event) => {
+              console.log('Résultat de la recherche :', event.detail);
+            });
+          } else {
+            console.warn('Mapbox Search JS non chargé');
+          }
+        });
+
+        window.map.on('error', (e) => console.error('Erreur Mapbox :', e));
+      } catch (error) {
+        console.error('Erreur lors de l’initialisation :', error);
+      }
+    }
+
+    function hideAllLayers() {
+      if (!window.map) return;
+      console.log('=== hideAllLayers called ===');
+      Object.keys(layerConfigs).forEach(layerId => {
+        const config = layerConfigs[layerId];
+        if (config.type === 'choropleth') {
+          if (window.map.getLayer(`${layerId}-choropleth`)) {
+            window.map.setLayoutProperty(`${layerId}-choropleth`, 'visibility', 'none');
+          }
+          if (config.labels?.enabled && window.map.getLayer(`${layerId}-labels`)) {
+            window.map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
+          }
+        } else {
+          if (window.map.getLayer(layerId)) {
+            window.map.setLayoutProperty(layerId, 'visibility', 'none');
+          }
+          if (config.labels?.enabled && window.map.getLayer(`${layerId}-labels`)) {
+            window.map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
+          }
+        }
+      });
+    }
+    window.hideAllLayers = hideAllLayers;
+
+    function addLayer(layerId) {
+      const config = layerConfigs[layerId];
+      if (!config || !window.map || window.map.getLayer(layerId)) return;
+
+      let paintObj;
+      if (config.isChoropleth) {
+        const colorExpr = ["step", ["get", config.property], config.colors[0]];
+        config.breaks.forEach((brk, i) => {
+          colorExpr.push(brk);
+          colorExpr.push(config.colors[i + 1]);
+        });
+        paintObj = { 'fill-color': colorExpr, 'fill-opacity': config.opacity ?? 0.7, 'fill-outline-color': '#ffffff' };
+      } else {
+        paintObj = config.basePaint ? { ...config.basePaint } : { 'fill-color': '#2C3E50', 'fill-opacity': 0.8, 'fill-outline-color': '#FFF' };
+        if (config.useFeatureStateClicked) {
+          paintObj['fill-color'] = ['case', ['boolean', ['feature-state', 'clicked'], false], '#FF0000', paintObj['fill-color']];
+        }
+      }
+
+      window.map.addLayer({
+        id: layerId,
+        type: 'fill',
+        source: layerId,
+        'source-layer': config.sourceLayer,
+        minzoom: config.minzoom,
+        maxzoom: config.maxzoom,
+        paint: paintObj
+      });
+
+      if (config.labels?.enabled) {
+        const labelLayerId = `${layerId}-labels`;
+        window.map.addLayer({
+          id: labelLayerId,
+          type: 'symbol',
+          source: layerId,
+          'source-layer': config.sourceLayer,
+          layout: { 'text-field': ['get', config.labels.field], 'text-size': config.labels.textSize || 12, 'text-anchor': 'center' },
+          paint: { 'text-color': config.labels.color || '#000', 'text-halo-color': config.labels.haloColor || '#fff', 'text-halo-width': config.labels.haloWidth || 1 }
+        });
+      }
+
+      if (config.clickable) {
+        window.map.on('click', layerId, e => handleLayerClick(e, layerId));
+        window.map.on('mouseenter', layerId, () => window.map.getCanvas().style.cursor = 'pointer');
+        window.map.on('mouseleave', layerId, () => window.map.getCanvas().style.cursor = '');
+      }
+    }
+
+    let lastClickedFeatureId = null;
+    function handleLayerClick(e, layerId) {
+      const config = layerConfigs[layerId];
+      if (!config || !e.features[0]) return;
+
+      const feature = e.features[0];
+      const codeIris = feature.properties[config.idField];
+      const allIrisFeatures = window.map.queryRenderedFeatures({ layers: [layerId], filter: ['==', ['get', config.idField], codeIris] });
+
+      if (lastClickedFeatureId) {
+        window.map.removeFeatureState({ source: layerId, sourceLayer: config.sourceLayer });
+      }
+
+      allIrisFeatures.forEach(f => {
+        window.map.setFeatureState({ source: layerId, sourceLayer: config.sourceLayer, id: f.id }, { clicked: true });
+      });
+
+      lastClickedFeatureId = feature.id;
+      if (typeof bubble_fn_mapClicked === 'function') {
+        bubble_fn_mapClicked({ output1: layerId, output2: codeIris });
+      }
+    }
+
+    function setFilterableIDs(layerId, listOfIDs) {
+      const config = layerConfigs[layerId];
+      if (window.map && window.map.getLayer(layerId)) {
+        const filter = ["in", ["get", config.idField], ["literal", listOfIDs]];
+        window.map.setFilter(layerId, filter);
+      }
+    }
+
+    window.updateMapLayers = function(layerId) {
+      if (!window.map) return;
+      addLayer(layerId);
+      if (window.map.getLayer(layerId)) window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+      const config = layerConfigs[layerId];
+      if (config?.labels?.enabled && window.map.getLayer(layerId + '-labels')) {
+        window.map.setLayoutProperty(layerId + '-labels', 'visibility', 'visible');
+      }
+    };
+
+    window.filterIRIS = function(irisString) {
+      if (!window.map) {
+        console.log("Carte non initialisée, réessai dans 300ms");
+        setTimeout(() => window.filterIRIS(irisString), 300);
+        return;
+      }
+
+      if (!window.map.loaded()) {
+        console.log("Carte non chargée, attente de l’événement 'load'...");
+        window.map.once('load', () => window.filterIRIS(irisString));
+        return;
+      }
+
+      console.log("Application du filtre IRIS avec:", irisString);
+      if (lastClickedFeatureId) {
+        window.map.removeFeatureState({ source: 'iris', sourceLayer: layerConfigs.iris.sourceLayer });
+        lastClickedFeatureId = null;
+      }
+
+      let selectedIds = typeof irisString === 'string' ? irisString.split(',').map(item => item.trim()) : irisString;
+      hideAllLayers();
+
+      if (!window.map.getSource('iris')) {
+        console.error("Source 'iris' non trouvée, ajout en cours...");
+        window.map.addSource('iris', layerConfigs.iris.source);
+      }
+      if (!window.map.getLayer('iris')) addLayer('iris');
+
+      window.map.setLayoutProperty('iris', 'visibility', 'visible');
+      if (window.map.getLayer('iris-labels')) window.map.setLayoutProperty('iris-labels', 'visibility', 'visible');
+
+      try {
+        const filter = ['match', ['get', 'CODE_IRIS'], selectedIds, true, false];
+        window.map.setFilter('iris', filter);
+        if (window.map.getLayer('iris-labels')) window.map.setFilter('iris-labels', filter);
+
+        const features = window.map.querySourceFeatures('iris', { sourceLayer: layerConfigs.iris.sourceLayer, filter });
+        if (features.length > 0) {
+          const bounds = new mapboxgl.LngLatBounds();
+          features.forEach(feature => {
+            if (feature.geometry.type === 'Polygon') {
+              feature.geometry.coordinates[0].forEach(coord => bounds.extend(coord));
+            } else if (feature.geometry.type === 'MultiPolygon') {
+              feature.geometry.coordinates.forEach(polygon => polygon[0].forEach(coord => bounds.extend(coord)));
+            }
+          });
+          window.map.fitBounds(bounds, { padding: 50 });
+        } else {
+          console.warn("Aucune feature trouvée pour les IDs:", selectedIds);
+        }
+      } catch (error) {
+        console.error("Erreur lors de l’application du filtre:", error);
+      }
+
+      window.map.on('zoom', () => {
+        if (lastClickedFeatureId) {
+          const feature = window.map.querySourceFeatures('iris', { sourceLayer: layerConfigs.iris.sourceLayer, filter: ['==', ['id'], lastClickedFeatureId] })[0];
+          if (feature) {
+            window.map.setFeatureState({ source: 'iris', sourceLayer: layerConfigs.iris.sourceLayer, id: lastClickedFeatureId }, { clicked: true });
+          }
+        }
+      });
+    };
+
+    // Démarrer l’initialisation
+    setTimeout(initializeMap, 100);
+  </script>
+</body>
+</html>
